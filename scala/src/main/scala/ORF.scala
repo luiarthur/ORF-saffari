@@ -28,19 +28,46 @@ object ORF {
     def draw = println(treeString)
   }
 
+  case class Info (numClass: Int) {
+    var splitDim: Int = 0
+    var splitLoc: Double  = 0.0
+    var p: Vector[Int] = Vector.fill(numClass)(0)
+    var pLeft: Vector[Int] = Vector.fill(numClass)(0)
+    var pRight: Vector[Int] = Vector.fill(numClass)(0)
+  }
+
+  type Param = Map[String,Double]
+  //val defaultParam = Map[String,Double]("lam" -> 1, "numClass" -> 5, "alpha" -> 50, "beta" -> .1, "numTests" -> 10)
+  class OT (param: Param) {
+    import breeze.stats.distributions.Poisson
+
+    val numClass = param("numClass").toInt
+    private var _tree = Tree( Info(numClass) )
+    def tree = _tree
+
+    def findLeaf(x: Vector[Double]): Tree[Info] = {
+      ???
+    }
+
+    def predict(x: Vector[Double]) = ???
+    def update(x: Vector[Double], y: Int) = {
+      val k = Poisson(param("lam")).draw
+      if (k > 0) {
+        for (u <- 1 to k) {
+
+        }
+      } else {
+        // estimate OOBE
+      }
+      ???
+    }
+  }
 
   // Think about the design
+  /*
   class Forest[T](x: Vector[Double], y: T, numClass:Int, lam: Double = 1, alpha: Int = 1, beta: Double = .1, numTests: Int = 10,
     numTrees: Int = 100) {
     import breeze.stats.distributions.Poisson
-
-    case class Info (
-      var splitDim: Int = 0,
-      var splitLoc: Double  = 0.0,
-      var p: Vector[Int] = Vector.fill(numClass)(0),
-      var pLeft: Vector[Int] = Vector.fill(numClass)(0),
-      var pRight: Vector[Int] = Vector.fill(numClass)(0)
-    )
 
     val response = y match { case i: Int => "Int"; case d: Double => "Double"; case _ => "InvalidResponseType" }
     val forest = List.fill(numTrees)( new Tree(Info) ).par
@@ -65,6 +92,7 @@ object ORF {
       }).sum
     }
   }
+  */
 }
 
 /*
