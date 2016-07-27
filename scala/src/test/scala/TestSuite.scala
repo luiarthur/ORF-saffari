@@ -23,9 +23,18 @@ class TestSuite extends FunSuite {
     //assert(orf.forest(0) != orf.forest(1))
 
     val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
-    val (trainInds, testInds) = inds.partition( _ % 2 == 0)
+
+    val (testInds, trainInds) = inds.partition( _ % 5 == 0)
+    //val ip = inds.zipWithIndex.partition( _._2 % 5 == 0)
+    //val (testInds, trainInds) = (ip._1.unzip._1,ip._2.unzip._1)
+    //print(trainInds.size,testInds.size)
+
     trainInds.foreach{ i => orf.update(X(i),y(i).toInt) }
-    //ot.tree.draw
-    //(testInds).foreach( z => println("Pred: " + orf.predict(z._2) + ", Truth: " + z._1))
+    orf.forest(0).tree.draw
+    orf.forest(1).tree.draw
+    val xtest = testInds.map(X(_)).toVector
+    val ytest = testInds.map(y(_)).toVector
+    val conf = orf.confusion(xtest,ytest)
+    orf.printConfusion(conf)
   }
 }

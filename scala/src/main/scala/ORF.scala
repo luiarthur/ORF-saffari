@@ -37,7 +37,7 @@ object ORF {
   }
 
   type Param = Map[String,Double]
-  case class OT (param: Param, xrange: Vector[(Double,Double)]) { // for classification
+  case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
     import breeze.stats.distributions.Poisson
     import scala.math.{log,exp}
 
@@ -46,7 +46,7 @@ object ORF {
     val numClass = param("numClass").toInt
     val minSamples = param("alpha").toInt
     val minGain = param("beta")
-    val dimX = xrange.size
+    val dimX = xRange.size
     val r = scala.util.Random
 
     case class Info( var splitDim: Int = -1, var splitLoc: Double = 0.0) {
@@ -57,7 +57,7 @@ object ORF {
         def runif(rng: (Double,Double)) = r.nextDouble * (rng._2-rng._1) + rng._1
         def gentest = {
           val dim = r.nextInt(dimX)
-          val loc = runif(xrange(dim))
+          val loc = runif(xRange(dim))
           val cLeft = Array.fill(numClass)(0)
           val cRight = Array.fill(numClass)(0)
           ( (dim,loc), (cLeft,cRight) )
@@ -144,8 +144,10 @@ object ORF {
         val cL = test._2._1
         val cR = test._2._2
         val g = gini(info.c) - cL.sum/n * gini(cL) - cR.sum/n * gini(cR)
-        assert(g >= 0, "Error: g < 0")
-        g
+        if (g < 0) {
+          assert(g >= -1E-10, "Error: g = " +  g + "< 0")
+          0
+        } else g
       }
     }
   }
@@ -163,6 +165,43 @@ object ORF {
     }
     def update(x: Vector[Double], y: Int) = {
       _forest.foreach( _.update(x,y) )
+    }
+    def confusion(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
+      val numClass = param("numClass").toInt
+      val preds = xs.map(x => predict(x))
+      val conf = Array.fill(numClass)( Array.fill(numClass)(0) )
+      for ( (y,pred) <- ys zip preds) {
+        conf(y)(pred) += 1
+      }
+      conf
+    }
+    // Print Confusion
+    def printConfusion(conf: Array[Array[Int]]) = {
+      println("\nConfusion Matrix:")
+      print("y\\pred\t")
+      (0 until param("numClass").toInt).foreach( i => print(i + "\t") )
+      println("\n")
+      var r = 0
+      conf.foreach{ row => 
+        print(r + "\t")
+        r = r + 1
+        row.foreach(c => print(c + "\t"))
+        println
+      }
+    }
+
+    def leaveOneOutCV(xs: Vector[Double], ys: Vector[Int]) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+      val n = ys.size
+      val numClass = param("numClass").toInt
+      val preds = Array.fill(numClass)(0)
+      val inds = Vector.range(0,n)
+      for (i <- inds) {
+        val orf = Forest(param,rng)
+        val trainInds = inds.filterNot(_==i)
+        trainInds.foreach{ i => orf.update(xs(i),ys(i).toInt) }
+      }
+      ???
     }
   }
 }
