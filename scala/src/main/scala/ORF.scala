@@ -82,7 +82,7 @@ object ORF {
           assert(test._2._1.sum + test._2._2.sum <= numSamples, "Error: Info.update")
         }
       }
-      override def toString(): String = if (splitDim == -1) "*" else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
+      override def toString(): String = if (splitDim == -1) "*" else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0 // * => prediction???
     }
 
     private val _tree = Tree( Info() ) // Online Tree
