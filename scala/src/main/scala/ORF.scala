@@ -11,6 +11,7 @@ object ORF {
   case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
     def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
     def nodes: List[Tree[T]] = if (isLeaf) List(this) else left.nodes ::: right.nodes ::: List(this)
+    def size = nodes.size
 
     private def pretty(spacing: Int = 3): Vector[String] = {
       def rep(n: Int, s: String=" ") = List.fill(n)(s).mkString
@@ -84,13 +85,13 @@ object ORF {
               j.elem.splitDim = bestTest._1
               j.elem.splitLoc = bestTest._2
               j.left.elem.c = children._1
-              j.left.elem.c = children._2
+              j.right.elem.c = children._2
               j.elem.reset
             }
           }
         }
-        } else { // k > 0
-        // estimate OOBE
+      } else { // k > 0
+        // estimate OOBE: Used for Temporal Knowledge Weighting
         val pred = predict(x)
         _oobe._2(y) += 1
         if (pred == y) _oobe._1(y) += 1
@@ -100,7 +101,8 @@ object ORF {
     private def gini(c: Array[Int]) = {
       val n = c.sum.toDouble
       (c map { x => 
-        val p = if (n > 0) x / n else 0
+        val p = if (n > 0) x / n else 1E-10
+        //- p * log(p) // Entropy
         p * (1-p)
       }).sum
     }
@@ -165,6 +167,7 @@ object ORF {
   case class Forest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100, par: Boolean = false) {
     val R = scala.util.Random
     val gamma = param("gamma")
+    val lam = param("lam")
     var _forest = {
       val f = Vector.range(1,numTrees) map { i => 
         val tree = OT(param,rng)
@@ -184,10 +187,7 @@ object ORF {
         val oldTrees = _forest.filter( t => t.age > 1 / gamma)
         if (oldTrees.size > 0) {
           val t = oldTrees( R.nextInt(oldTrees.size) )
-          if (t.oobe > R.nextDouble) {
-            println("Tossing a tree with oobe: "+ t.oobe)
-            t.reset
-          }
+          if (t.oobe > R.nextDouble) t.reset
         }
       }
     }
@@ -195,9 +195,7 @@ object ORF {
       val numClass = param("numClass").toInt
       val preds = xs.map(x => predict(x))
       val conf = Array.fill(numClass)( Array.fill(numClass)(0) )
-      for ( (y,pred) <- ys zip preds) {
-        conf(y)(pred) += 1
-      }
+      for ( (y,pred) <- ys zip preds) conf(y)(pred) += 1
       conf
     }
     def printConfusion(conf: Array[Array[Int]]) = {
@@ -213,6 +211,11 @@ object ORF {
         println("\n")
       }
     }
+    def predAccuracy(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
+      val pa = (xs zip ys) map {z => predict(z._1) == z._2}
+      pa.map(b => if (b) 1 else 0).sum / pa.size.toDouble
+    }
+    def meanTreeSize = _forest.map{ot => ot.tree.size}.sum / _forest.size.toDouble
 
     // Use this to test algorithm. Not used in practice.
     def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = {

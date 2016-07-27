@@ -1,0 +1,12 @@
+#!/bin/bash
+
+wget http://statweb.stanford.edu/~tibs/ElemStatLearn/datasets/zip.train.gz
+wget http://statweb.stanford.edu/~tibs/ElemStatLearn/datasets/zip.test.gz
+wget http://statweb.stanford.edu/~tibs/ElemStatLearn/datasets/zip.info.txt
+
+gunzip zip.train.gz
+gunzip zip.test.gz
+
+mv zip.train train.csv
+mv zip.test test.csv
+mv zip.info.txt info.txt

@@ -12,13 +12,14 @@ class TestSuite extends FunSuite {
     assert(!x.isLeaf && x.left.isLeaf)
   }
 
+  if (false) // off
   test("ORT") {
     val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
     val n = iris.size
     val k = iris(0).size - 1
     val y = iris.map( yi => {yi(k) - 1}.toInt )
     val X = iris.map(x => x.take(k))
-    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, "alpha" -> 5, "beta" -> .1, "numTests" -> 3, "gamma" -> .0)
+    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, "alpha" -> 5, "beta" -> .1, "numTests" -> 10, "gamma" -> .0)
 
     val orf = Forest(param,dataRange(X))
     //assert(orf.forest(0) != orf.forest(1))
@@ -43,5 +44,38 @@ class TestSuite extends FunSuite {
       orf.printConfusion(conflooPar)
     }
     print(Console.RESET)
+  }
+
+  if (true)
+  test("Online Read") {
+    val uspsTrain = scala.util.Random.shuffle(
+      scala.io.Source.fromFile("src/test/resources/usps/train.csv").
+      getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector)
+    val uspsTest = scala.io.Source.fromFile("src/test/resources/usps/test.csv").
+      getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
+
+    val n = uspsTrain.size
+    val k = uspsTrain(0).size - 1
+    val y = uspsTrain.map( _.head.toInt )
+    val X = uspsTrain.map( _.tail )
+    println("Dim: " + X.size + "," + X(0).size)
+    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, 
+                                   "alpha" -> 700, "beta" -> .01, 
+                                   "numTests" -> 10, "gamma" -> .0)
+    val inds = Vector.range(0,n)
+
+    val orf = Forest(param,dataRange(X),numTrees=100,par=true)
+
+    Timer.time {inds.foreach{ i => orf.update(X(i),y(i).toInt) }}
+
+    println("mean tree size: " + orf.meanTreeSize)
+    println("c: " + orf.forest(0).tree.elem.c.mkString(","))
+
+    val xtest = uspsTest.map(x => x.tail)
+    val ytest = uspsTest.map(yi => yi(0).toInt)
+    val conf = orf.confusion(xtest,ytest)
+    print(Console.YELLOW)
+    orf.printConfusion(conf)
+    println(orf.predAccuracy(xtest,ytest) + Console.RESET)
   }
 }
