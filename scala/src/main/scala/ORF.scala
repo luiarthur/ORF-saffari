@@ -137,6 +137,7 @@ object ORF {
         Array.range(0, numTests) map {s => gentest}
       }
 
+      // ToDo: ??? Gini importance: I = Gini - Gini_splitLeft - Gini_splitRight
       def reset = {
         c = Array()
         tests = Array()
