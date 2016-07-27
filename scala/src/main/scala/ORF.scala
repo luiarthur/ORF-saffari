@@ -1,6 +1,14 @@
 object ORF {
-  // class Tree: 
-  case class Tree[T](elem: T, left: Tree[T] = null, right: Tree[T] = null) {
+  // Tools:
+  def dataRange(X: Vector[Vector[Double]]) = 
+    Vector.range(0,X(0).size) map {j => 
+      val colj = X map {x => x(j)}
+      (colj.max, colj.min)
+    }
+  def dataClasses(y: Vector[Double]) = y.toSet.size
+
+  // Mutable Left, Right Tree
+  case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
     def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
     def nodes: List[Tree[T]] = if (isLeaf) List(this) else left.nodes ::: right.nodes ::: List(this)
 
@@ -28,83 +36,133 @@ object ORF {
     def draw = println(treeString)
   }
 
-  case class Info (numClass: Int) {
-    var splitDim: Int = 0
-    var splitLoc: Double  = 0.0
-    var p: Vector[Int] = Vector.fill(numClass)(0)
-    var pLeft: Vector[Int] = Vector.fill(numClass)(0)
-    var pRight: Vector[Int] = Vector.fill(numClass)(0)
-  }
-
   type Param = Map[String,Double]
-  //val defaultParam = Map[String,Double]("lam" -> 1, "numClass" -> 5, "alpha" -> 50, "beta" -> .1, "numTests" -> 10)
-  class OT (param: Param) {
+  case class OT (param: Param, xrange: Vector[(Double,Double)]) { // for classification
     import breeze.stats.distributions.Poisson
+    import scala.math.{log,exp}
 
+    val lam = param("lam")
+    val numTests = param("numTests").toInt
     val numClass = param("numClass").toInt
-    private var _tree = Tree( Info(numClass) )
-    def tree = _tree
+    val minSamples = param("alpha").toInt
+    val minGain = param("beta")
+    val dimX = xrange.size
+    val r = scala.util.Random
 
-    def findLeaf(x: Vector[Double]): Tree[Info] = {
-      ???
+    case class Info( var splitDim: Int = -1, var splitLoc: Double = 0.0) {
+      var c = Array.fill(numClass)(0)
+      def numSamples = c.sum
+
+      var tests = {
+        def runif(rng: (Double,Double)) = r.nextDouble * (rng._2-rng._1) + rng._1
+        def gentest = {
+          val dim = r.nextInt(dimX)
+          val loc = runif(xrange(dim))
+          val cLeft = Array.fill(numClass)(0)
+          val cRight = Array.fill(numClass)(0)
+          ( (dim,loc), (cLeft,cRight) )
+        }
+        Array.range(0, numTests) map {s => gentest}
+      }
+
+      def reset = {
+        c = Array()
+        tests = Array()
+      }
+
+      def update(x: Vector[Double], y: Int) = {
+        c(y) += 1
+        for (test <- tests) {
+          val (dim,loc) = test._1
+          if (x(dim) < loc) {
+            test._2._1(y) += 1
+          } else {
+            test._2._2(y) += 1
+          }
+          assert(test._2._1.sum + test._2._2.sum <= numSamples, "Error: Info.update")
+        }
+      }
+      override def toString(): String = if (splitDim == -1) "*" else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
     }
 
-    def predict(x: Vector[Double]) = ???
-    def update(x: Vector[Double], y: Int) = {
-      val k = Poisson(param("lam")).draw
+    private val _tree = Tree( Info() ) // Online Tree
+    def tree = _tree
+
+    private def findLeaf(x: Vector[Double], tree: Tree[Info]): Tree[Info] = {
+      if (tree.isLeaf) tree else {
+        val (dim,loc) = (tree.elem.splitDim, tree.elem.splitLoc)
+        if ( x(dim) > loc ) findLeaf(x, tree.right) else findLeaf(x, tree.left)
+      }
+    }
+
+    def predict(x: Vector[Double]) = {
+      val info = findLeaf(x,_tree).elem
+      val cs = info.c
+      val n = info.numSamples
+      val p = cs map { c => log(c) - log(n) }
+      p.zipWithIndex.maxBy(_._1)._2
+    }
+    
+    def update(x: Vector[Double], y: Int) = { // Updates _tree
+      val k = Poisson(lam).draw
       if (k > 0) {
         for (u <- 1 to k) {
-
+          val j = findLeaf(x,_tree)
+          j.elem.update(x,y)
+          if (j.elem.numSamples > minSamples) {
+            val g = gains(j.elem)
+            if ( g.exists(_ > minGain) ) {
+              val (bestTest,children) = g.zip(j.elem.tests).maxBy(_._1)._2
+              // create Left, Right children
+              j.left = Tree( Info() )
+              j.right = Tree( Info() )
+              j.elem.splitDim = bestTest._1
+              j.elem.splitLoc = bestTest._2
+              j.left.elem.c = children._1
+              j.left.elem.c = children._2
+              j.elem.reset
+            }
+          }
         }
       } else {
         // estimate OOBE
       }
-      ???
     }
-  }
 
-  // Think about the design
-  /*
-  class Forest[T](x: Vector[Double], y: T, numClass:Int, lam: Double = 1, alpha: Int = 1, beta: Double = .1, numTests: Int = 10,
-    numTrees: Int = 100) {
-    import breeze.stats.distributions.Poisson
-
-    val response = y match { case i: Int => "Int"; case d: Double => "Double"; case _ => "InvalidResponseType" }
-    val forest = List.fill(numTrees)( new Tree(Info) ).par
-
-    def predict(x: Vector[Double]) = ???
-    def update(x: Vector[Double], y: T) = {
-      forest map { t =>
-        val k = Poisson(lam).draw
-      }
-    }
-    def labelProps(y: Vector[Int], nc: Int = numClass) {
-      val labels = Vector.range(0,nc)
-      val n = y.size
-      labels map { k  => y.count(_ == k) / n.toDouble }
-    }
-    def gini(y: Vector[Int], nc: Int = numClass) = { // smaller is better => purer node
-      val labels = Vector.range(0,nc)
-      val n = y.size
-      (labels map { k  =>
-        val p = y.count(_ == k) / n.toDouble
+    private def gini(c: Array[Int]) = {
+      val n = c.sum.toDouble
+      (c map { x => 
+        val p = if (n > 0) x / n else 0
         p * (1-p)
       }).sum
     }
-  }
-  */
-}
 
-/*
-   import ORF._
-   val x = Tree(1,Tree(202),Tree(303))
-   x.isLeaf
-   x.left.isLeaf
-   x.draw
-   x.left.draw
-   val f = new Forest(Vector(1,2,3), 0)
-   f.response
-   val f = new Forest(Vector(1,2,3), .0)
-   f.response
-   List.fill(10)(Tree(1)).par
- */
+    private def gains(info: Info) = {
+      val tests = info.tests
+      val n = info.numSamples.toDouble
+      tests map { test =>
+        val cL = test._2._1
+        val cR = test._2._2
+        val g = gini(info.c) - cL.sum/n * gini(cL) - cR.sum/n * gini(cR)
+        assert(g >= 0, "Error: g < 0")
+        g
+      }
+    }
+  }
+
+  case class Forest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100) {
+    var _forest = List.range(1,numTrees) map { i => 
+      val tree = OT(param,rng)
+      tree
+    }
+    def forest = _forest
+    def predict(x: Vector[Double]) = {
+      val preds = _forest.map(tree => tree.predict(x)) 
+      val predList = preds.groupBy(identity).toList
+      predList.maxBy(_._2.size)._1
+    }
+    def update(x: Vector[Double], y: Int) = {
+      _forest.foreach( _.update(x,y) )
+    }
+  }
+}

@@ -11,13 +11,21 @@ class TestSuite extends FunSuite {
     assert(!x.isLeaf && x.left.isLeaf)
   }
 
-  //test("Forest Response") {
-  //  val List(f1,f2,f3) = List(1, 1.0, Vector(0,1,2,3)) map { x => new Forest(Vector(1,2,3),x,10) }
-  //  assert(f1.response == "Int" && f2.response == "Double" && f3.response == "InvalidResponseType")
-  //}
+  test("ORT") {
+    val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
+    val n = iris.size
+    val k = iris(0).size - 1
+    val y = iris.map( yi => {yi(k) - 1}.toInt )
+    val X = iris.map(x => x.take(k))
+    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, "alpha" -> 5, "beta" -> .1, "numTests" -> 3)
 
-  test("OT") {
-    val param = Map[String,Double]("lam" -> 1, "numClass" -> 5, "alpha" -> 50, "beta" -> .1, "numTests" -> 10)
-    //val ot = new OT(Info(10),OT(Info(9)),OT(Info(8)),param=param)
+    val orf = Forest(param,dataRange(X))
+    //assert(orf.forest(0) != orf.forest(1))
+
+    val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
+    val (trainInds, testInds) = inds.partition( _ % 2 == 0)
+    trainInds.foreach{ i => orf.update(X(i),y(i).toInt) }
+    //ot.tree.draw
+    //(testInds).foreach( z => println("Pred: " + orf.predict(z._2) + ", Truth: " + z._1))
   }
 }
