@@ -177,7 +177,7 @@ object ORF {
     }
     // Print Confusion
     def printConfusion(conf: Array[Array[Int]]) = {
-      println("\nConfusion Matrix:")
+      println("Confusion Matrix:")
       print("y\\pred\t")
       (0 until param("numClass").toInt).foreach( i => print(i + "\t") )
       println("\n")
@@ -186,22 +186,28 @@ object ORF {
         print(r + "\t")
         r = r + 1
         row.foreach(c => print(c + "\t"))
-        println
+        println("\n")
       }
     }
 
-    def leaveOneOutCV(xs: Vector[Double], ys: Vector[Int]) = {
+    def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = {
       assert(xs.size == ys.size, "Error: xs and ys need to have same length")
       val n = ys.size
       val numClass = param("numClass").toInt
-      val preds = Array.fill(numClass)(0)
       val inds = Vector.range(0,n)
-      for (i <- inds) {
+      val conf = Array.fill(numClass)( Array.fill(numClass)(0) )
+      def loo(i:Int) = {
         val orf = Forest(param,rng)
-        val trainInds = inds.filterNot(_==i)
+        val indsShuf = scala.util.Random.shuffle(0 to n-1) // important
+        val trainInds = indsShuf.filter(_!=i)
         trainInds.foreach{ i => orf.update(xs(i),ys(i).toInt) }
+        val pred = orf.predict(xs(i))
+        val curr = conf(ys(i))(pred)
+        conf(ys(i))(pred) = curr + 1
       }
-      ???
+      // par is not safe!!!
+      if (par) List.range(0,n).par.map { i => loo(i) } else for (i <- inds) loo(i)
+      conf
     }
   }
 }
