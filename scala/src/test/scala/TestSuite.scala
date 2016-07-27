@@ -18,7 +18,7 @@ class TestSuite extends FunSuite {
     val k = iris(0).size - 1
     val y = iris.map( yi => {yi(k) - 1}.toInt )
     val X = iris.map(x => x.take(k))
-    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, "alpha" -> 5, "beta" -> .1, "numTests" -> 3)
+    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, "alpha" -> 5, "beta" -> .1, "numTests" -> 3, "gamma" -> .0)
 
     val orf = Forest(param,dataRange(X))
     //assert(orf.forest(0) != orf.forest(1))
@@ -34,19 +34,14 @@ class TestSuite extends FunSuite {
     val conf = orf.confusion(xtest,ytest)
     print(Console.YELLOW)
     orf.printConfusion(conf)
+    //orf.forest.foreach( tree => println(tree.oobe) )
 
     println
     Timer.time {
-      val confloo= orf.leaveOneOutCV(X,y,par=false)
-      println("Sequential Leave One Out CV")
-      orf.printConfusion(confloo)
+      val conflooPar= orf.leaveOneOutCV(X,y,par=true)
+      println("Parallel Leave One Out CV") // faster!!!
+      orf.printConfusion(conflooPar)
     }
-    //println
-    //Timer.time {
-    //  val conflooPar= orf.leaveOneOutCV(X,y,par=true)
-    //  println("Parallel Leave One Out CV") // faster!!!
-    //  orf.printConfusion(conflooPar)
-    //}
     print(Console.RESET)
   }
 }
