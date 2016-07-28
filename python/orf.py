@@ -1,6 +1,14 @@
 import numpy as np
 import random
 
+def confusion(preds,ys):
+    n = np.unique(ys).size
+    conf = np.zeros([n,n])
+    for r in np.transpose(np.vstack([preds,ys])):
+        conf[r[1],r[0]] += 1
+    #
+    return conf
+
 def getRange(X, pad=.1):
     k = len(X[0])
     rng = np.zeros([k,2])
