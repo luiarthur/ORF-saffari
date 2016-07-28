@@ -15,12 +15,19 @@ class ORF:
         self.numTrees = numTrees
         self.param = param
         self.rng = rng
+        self.trees = [ ORT(param,rng) for i in range(numTrees) ]
     #
-    def update(x,y): 
-        pass
+    def update(self,x,y): 
+        for i in range(self.numTrees):
+            self.trees[i].update(x,y)
+        #
+        if self.param['gamma'] > 0:
+            print "Need to implement this: Algorithm 2 - Temporal Knowledge Weighting"
     #
     def predict(self,x):
-        pass
+        preds = np.array([ t.predict(x) for t in self.trees ])
+        uniquePreds, inds = np.unique(preds, return_inverse=True)
+        return uniquePreds[np.argmax(np.bincount(inds))]
 
 class Tree:
     def __init__(self, elem, left=None, right=None):
@@ -59,7 +66,7 @@ class Info:
                 self.tests[s]['cLeft'][y] += 1
             else:
                 self.tests[s]['cRight'][y] += 1
-            assert(self.tests[s]['cLeft'].sum() + self.tests[s]['cRight'].sum() <= self.c.sum())
+            assert self.tests[s]['cLeft'].sum() + self.tests[s]['cRight'].sum() <= self.c.sum(), "Error in Info.update"
     # 
     def pred(self):
         return self.c.argmax()
@@ -94,9 +101,9 @@ class ORT: # Online Random Tree
             dim = tree.elem.splitDim
             loc = tree.elem.splitLoc
             if x[dim] < loc:
-                self.__findLeaf(x,tree.left)
+                return self.__findLeaf(x,tree.left)
             else:
-                self.__findLeaf(x,tree.right)
+                return self.__findLeaf(x,tree.right)
     #
     def predict(self, x):
         return self.__findLeaf(x,self.tree).elem.pred()
@@ -105,37 +112,28 @@ class ORT: # Online Random Tree
         k = np.random.poisson(1)
         if k > 0:
             for u in range(k):
-                print "HERE0"
                 self.age += 1
                 j = self.__findLeaf(x,self.tree)
                 j.elem.update(x,y)
-                print "HERE00"
                 if j.elem.numSamples() > self.minSamples:
                     g = self.__gains(j.elem)
                     if any(g > self.minGain):
                         i = g.argmax()
                         bestTest = j.elem.tests[i]
-                        print "HERE"
                         j.left = Tree( Info(self.numClass, self.numTest, self.xrng) )
                         j.right = Tree( Info(self.numClass, self.numTest, self.xrng) )
-                        print "HERE1"
                         j.elem.splitDim = bestTest['dim']
                         j.elem.splitLoc = bestTest['loc']
-                        print "HERE2"
                         j.left.elem.c = bestTest['cLeft']
                         j.right.elem.c = bestTest['cRight']
-                        print "HERE3"
                         #j.elem.reset()
-                        print "HERE4"
         else: # k = 0. Estimate OOBE: Used for temporal knowledge weighting. (Algorithm 2 of Saffari paper).
             pass
     #
     def __loss(self,c):
-        n = c.sum() + .0
-        assert(n > 0, "Error in ORT.__loss(): n <= 0")
+        n = c.sum() + 1e-10
         p = c / n
-        ps = p * (1-p) # gini
-        # - p * np.log(p) # Entropy
+        ps = p * (1-p) # -> gini | - p * np.log(p) -> Entropy
         return ps.sum()
     #
     def __gains(self,info):
@@ -149,21 +147,20 @@ class ORT: # Online Random Tree
         return out
 
 ### TEST:
-x = np.array([1.5,2.5,3.5])
-xrng = np.array([[1,2],[3,4],[5,6]])
-assert( len(x) == len(xrng) )
-
-
-iris = np.genfromtxt('../scala/src/test/resources/iris.csv', delimiter=',')
-iris[:,4] -= 1
-param = {'numClass': np.unique(iris[:,4]).size, 'lam': 1, 'minSamples': 5, 'minGain': .1, 'numTest': 3, 'gamma': 0}
-np.random.shuffle(iris)
-X = iris[:,0:3]
-y = iris[:,4]
-ort = ORT(param, getRange(X))
-for row in iris:
-    xx = row[0:3]
-    yy = row[4]
-    ort.update(x,y)
-
-ort.predict(X[0,:])
+#iris = np.genfromtxt('../scala/src/test/resources/iris.csv', delimiter=',')
+#iris[:,4] -= 1
+#np.random.shuffle(iris)
+#X = iris[:,0:4]
+#y = np.array(iris[:,4],dtype=int)
+#param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 5, 'minGain': .1, 'numTest': 3, 'gamma': 0}
+#ort = ORT(param, getRange(X))
+#for row in iris:
+#    xx = row[0:4]
+#    yy = row[4]
+#    ort.update(xx,yy)
+#
+#pred = np.zeros(len(X))
+#for i in range(len(X)):
+#    pred[i] = ort.predict(X[i,:])
+#
+#np.mean(pred==y)
