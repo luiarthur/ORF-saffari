@@ -12,7 +12,7 @@ class TestSuite extends FunSuite {
     assert(!x.isLeaf && x.left.isLeaf)
   }
 
-  if (false) // off
+  if (true) // off
   test("ORT") {
     val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
     val n = iris.size
@@ -35,6 +35,7 @@ class TestSuite extends FunSuite {
     val conf = orf.confusion(xtest,ytest)
     print(Console.YELLOW)
     orf.printConfusion(conf)
+    println(orf.predAccuracy(xtest,ytest) + Console.RESET)
     //orf.forest.foreach( tree => println(tree.oobe) )
 
     println
