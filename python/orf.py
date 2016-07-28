@@ -70,7 +70,7 @@ class ORT: # Online Random Tree
         self.minSamples = param['minSamples']
         self.minGain = param['minGain']
         self.xrng = xrng
-        self.tree = Tree(Info(self.numClass,self.numTest))
+        self.tree = Tree(Info(self.numClass,self.numTest,self.xrng))
     #
     def __findLeaf(self,x):
         pass
