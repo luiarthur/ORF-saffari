@@ -20,20 +20,29 @@ pred = np.zeros(len(X))
 for i in range(len(X)):
     pred[i] = irisORF.predict(X[i,:])
 
-
 np.mean( pred == y )
-
 orf.confusion(pred,y)
 
 # USPS:
 uspsTrain = np.genfromtxt('../scala/src/test/resources/usps/train.csv', delimiter=' ')
+uspsTest = np.genfromtxt('../scala/src/test/resources/usps/test.csv', delimiter=' ')
 y = np.array(uspsTrain[:,0],dtype=int)
 X = uspsTrain[:,1:]
 (n,k) = X.shape
-param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 100, 'minGain': .1, 'numTest': 10, 'gamma': 0}
+param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 100, 'minGain': .01, 'numTest': 10, 'gamma': 0}
 
 uspsORF = orf.ORF(param,orf.getRange(X))
+i = 0
 for row in uspsTrain:
+    print i
+    i += 1
     uspsORF.update(row[1:],row[0])
+
+pred = np.zeros(len(uspsTest))
+for i in range(len(pred)):
+    pred[i] = uspsORF.predict(uspsTest[i,1:])
+
+np.mean( pred ==  uspsTest[:,0])
+print orf.confusion(pred,uspsTest[:,0])
 
 

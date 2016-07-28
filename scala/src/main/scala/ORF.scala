@@ -78,14 +78,14 @@ object ORF {
           if (j.elem.numSamples > minSamples) {
             val g = gains(j.elem)
             if ( g.exists(_ > minGain) ) {
-              val (bestTest,children) = g.zip(j.elem.tests).maxBy(_._1)._2
+              val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
               // create Left, Right children
               j.left = Tree( Info() )
               j.right = Tree( Info() )
-              j.elem.splitDim = bestTest._1
-              j.elem.splitLoc = bestTest._2
-              j.left.elem.c = children._1
-              j.right.elem.c = children._2
+              j.elem.splitDim = bestTest.dim
+              j.elem.splitLoc = bestTest.loc
+              j.left.elem.c = bestTest.cLeft
+              j.right.elem.c = bestTest.cRight
               j.elem.reset
             }
           }
@@ -111,8 +111,8 @@ object ORF {
       val tests = info.tests
       val n = info.numSamples.toDouble
       tests map { test =>
-        val cL = test._2._1
-        val cR = test._2._2
+        val cL = test.cLeft
+        val cR = test.cRight
         val g = gini(info.c) - cL.sum/n * gini(cL) - cR.sum/n * gini(cR)
         if (g < 0) {
           assert(g >= -1E-10, "Error: g = " +  g + "< 0")
@@ -125,6 +125,8 @@ object ORF {
       var c = Array.fill(numClass)(0)
       def numSamples = c.sum
 
+      case class Test(dim: Int, loc: Double, cLeft: Array[Int], cRight: Array[Int])
+
       var tests = {
         def runif(rng: (Double,Double)) = R.nextDouble * (rng._2-rng._1) + rng._1
         def gentest = {
@@ -132,7 +134,7 @@ object ORF {
           val loc = runif(xRange(dim))
           val cLeft = Array.fill(numClass)(0)
           val cRight = Array.fill(numClass)(0)
-          ( (dim,loc), (cLeft,cRight) )
+          Test(dim,loc,cLeft,cRight)
         }
         Array.range(0, numTests) map {s => gentest}
       }
@@ -146,13 +148,17 @@ object ORF {
       def update(x: Vector[Double], y: Int) = {
         c(y) += 1
         for (test <- tests) {
-          val (dim,loc) = test._1
+          //val (dim,loc) = test._1
+          val dim = test.dim
+          val loc = test.loc
           if (x(dim) < loc) {
-            test._2._1(y) += 1
+            //test._2._1(y) += 1
+            test.cLeft(y) += 1
           } else {
-            test._2._2(y) += 1
+            //test._2._2(y) += 1
+            test.cRight(y) += 1
           }
-          assert(test._2._1.sum + test._2._2.sum <= numSamples, "Error: Info.update")
+          //assert(test._2._1.sum + test._2._2.sum <= numSamples, "Error: Info.update")
         }
       }
       
