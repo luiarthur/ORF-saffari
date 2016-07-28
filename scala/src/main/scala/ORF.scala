@@ -40,12 +40,12 @@ object ORF {
   type Param = Map[String,Double]
   case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
     import breeze.stats.distributions.Poisson
-    import scala.math.{log,exp}
+    import scala.math.{log,exp,sqrt}
     val R = scala.util.Random
 
     var age = 0
     val lam = param("lam")
-    val numTests = param("numTests").toInt
+    val numTests = if (param("numTests").toInt == 0) sqrt(xRange.size).toInt else param("numTests").toInt
     val numClass = param("numClass").toInt
     val minSamples = param("alpha").toInt
     val minGain = param("beta")
