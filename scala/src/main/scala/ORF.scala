@@ -6,6 +6,16 @@ object ORF {
       (colj.max, colj.min)
     }
   def dataClasses(y: Vector[Double]) = y.toSet.size
+  def normalize(X: Vector[Vector[Double]]) = {
+    val rng = dataRange(X)
+    val n = X.size
+    val k = X(0).size
+    Vector.range(0,n) map { i =>
+      Vector.range(0,k) map { j => 
+        ( X(i)(j) - rng(j)._1 ) / ( rng(j)._2 - rng(j)._1)
+      }
+    }
+  }
 
   // Mutable Left, Right Tree
   case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
@@ -67,6 +77,7 @@ object ORF {
     }
 
     def predict(x: Vector[Double]) = findLeaf(x,_tree).elem.pred
+    def density(x: Vector[Double]) = findLeaf(x,_tree).elem.dens
     
     def update(x: Vector[Double], y: Int) = { // Updates _tree
       val k = Poisson(lam).draw
@@ -98,22 +109,22 @@ object ORF {
       }
     }
 
-    private def gini(c: Array[Int]) = {
+    private def loss(c: Array[Int], gini: Boolean = true) = {
       val n = c.sum.toDouble
       (c map { x => 
         val p = if (n > 0) x / n else 1E-10
-        //- p * log(p) // Entropy
-        p * (1-p)
+        if (gini) p * (1-p) else -p * log(p) // Entropy
       }).sum
     }
 
     private def gains(info: Info) = {
       val tests = info.tests
       val n = info.numSamples.toDouble
+      assert(n > 0, "Error: n cannot be 0")
       tests map { test =>
         val cL = test.cLeft
         val cR = test.cRight
-        val g = gini(info.c) - cL.sum/n * gini(cL) - cR.sum/n * gini(cR)
+        val g = loss(info.c) - cL.sum/n * loss(cL) - cR.sum/n * loss(cR)
         if (g < 0) {
           assert(g >= -1E-10, "Error: g = " +  g + "< 0")
           0
@@ -148,24 +159,20 @@ object ORF {
       def update(x: Vector[Double], y: Int) = {
         c(y) += 1
         for (test <- tests) {
-          //val (dim,loc) = test._1
           val dim = test.dim
           val loc = test.loc
           if (x(dim) < loc) {
-            //test._2._1(y) += 1
             test.cLeft(y) += 1
           } else {
-            //test._2._2(y) += 1
             test.cRight(y) += 1
           }
-          //assert(test._2._1.sum + test._2._2.sum <= numSamples, "Error: Info.update")
+          assert(test.cLeft.sum + test.cRight.sum <= numSamples, "Error: Info.update")
         }
       }
       
-      def pred = {
-        val p = c map {cc => log(cc) - log(numSamples)}
-        p.zipWithIndex.maxBy(_._1)._2
-      }
+      def pred = c.zipWithIndex.maxBy(_._1)._2
+      def dens = c.map { cc => cc / (numSamples.toDouble+1E-10) }
+
       override def toString(): String = 
         if (splitDim == -1) pred.toString else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
     } // end of case class Info
@@ -187,6 +194,13 @@ object ORF {
       val preds = _forest.map(tree => tree.predict(x)) 
       val predList = preds.groupBy(identity).toList
       predList.maxBy(_._2.size)._1
+      /* Alternatively:
+      val dens = _forest.map(tree => tree.density(x))
+      val inds = Vector.range(0,dens.head.size)
+      val densMean = inds.map( i => dens.map(d => d(i)).sum / dens.size )
+      val out = densMean.zipWithIndex.maxBy(_._1)._2
+      out
+      */
     }
     def update(x: Vector[Double], y: Int) = {
       _forest.foreach( _.update(x,y) )
@@ -219,13 +233,12 @@ object ORF {
       }
     }
     def predAccuracy(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
-      val pa = (xs zip ys) map {z => predict(z._1) == z._2}
-      pa.map(b => if (b) 1 else 0).sum / pa.size.toDouble
+      val pt = (xs zip ys) map {z => predict(z._1) == z._2}
+      pt.map(predEqualTruth => if (predEqualTruth) 1 else 0).sum / pt.size.toDouble
     }
     def meanTreeSize = _forest.map{ot => ot.tree.size}.sum / _forest.size.toDouble
 
-    // Use this to test algorithm. Not used in practice.
-    def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = {
+    def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = { // for convenience
       assert(xs.size == ys.size, "Error: xs and ys need to have same length")
       val n = ys.size
       val numClass = param("numClass").toInt
