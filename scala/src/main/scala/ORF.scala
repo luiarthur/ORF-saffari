@@ -19,8 +19,7 @@ object ORF {
       }
     }
   }
-  private 
-  def poisson(lam: Double) = {
+  private def poisson(lam: Double) = {
     val l = exp(-lam)
     def loop(k: Int, p: Double): Int = if (p > l) loop(k+1, p * Rand.nextDouble) else k - 1
     loop(0,1)
