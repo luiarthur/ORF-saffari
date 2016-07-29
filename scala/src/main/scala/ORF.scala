@@ -1,4 +1,7 @@
 object ORF {
+  import scala.math.{log,exp,sqrt}
+  val Rand = scala.util.Random
+
   // Tools:
   def dataRange(X: Vector[Vector[Double]]) = 
     Vector.range(0,X(0).size) map {j => 
@@ -15,6 +18,12 @@ object ORF {
         ( X(i)(j) - rng(j)._1 ) / ( rng(j)._2 - rng(j)._1)
       }
     }
+  }
+  private 
+  def poisson(lam: Double) = {
+    val l = exp(-lam)
+    def loop(k: Int, p: Double): Int = if (p > l) loop(k+1, p * Rand.nextDouble) else k - 1
+    loop(0,1)
   }
 
   // Mutable Left, Right Tree
@@ -49,9 +58,6 @@ object ORF {
 
   type Param = Map[String,Double]
   case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
-    import breeze.stats.distributions.Poisson
-    import scala.math.{log,exp,sqrt}
-    val R = scala.util.Random
 
     var age = 0
     val lam = param("lam")
@@ -80,7 +86,7 @@ object ORF {
     def density(x: Vector[Double]) = findLeaf(x,_tree).elem.dens
     
     def update(x: Vector[Double], y: Int) = { // Updates _tree
-      val k = Poisson(lam).draw
+      val k = poisson(1)
       if (k > 0) {
         for (u <- 1 to k) {
           age = age + 1
@@ -139,9 +145,9 @@ object ORF {
       case class Test(dim: Int, loc: Double, cLeft: Array[Int], cRight: Array[Int])
 
       var tests = {
-        def runif(rng: (Double,Double)) = R.nextDouble * (rng._2-rng._1) + rng._1
+        def runif(rng: (Double,Double)) = Rand.nextDouble * (rng._2-rng._1) + rng._1
         def gentest = {
-          val dim = R.nextInt(dimX)
+          val dim = Rand.nextInt(dimX)
           val loc = runif(xRange(dim))
           val cLeft = Array.fill(numClass)(0)
           val cRight = Array.fill(numClass)(0)
@@ -179,7 +185,6 @@ object ORF {
   } // end of case class OT
 
   case class Forest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100, par: Boolean = false) {
-    val R = scala.util.Random
     val gamma = param("gamma")
     val lam = param("lam")
     var _forest = {
@@ -207,8 +212,8 @@ object ORF {
       if (gamma > 0) { // Algorithm 2: Temporal Knowledge Weighting
         val oldTrees = _forest.filter( t => t.age > 1 / gamma)
         if (oldTrees.size > 0) {
-          val t = oldTrees( R.nextInt(oldTrees.size) )
-          if (t.oobe > R.nextDouble) t.reset
+          val t = oldTrees( Rand.nextInt(oldTrees.size) )
+          if (t.oobe > Rand.nextDouble) t.reset
         }
       }
     }
@@ -246,7 +251,7 @@ object ORF {
       val conf = Array.fill(numClass)( Array.fill(numClass)(0) )
       for (i <- inds) {
         val orf = Forest(param,rng,par=par)
-        val indsShuf = scala.util.Random.shuffle(0 to n-1) // important
+        val indsShuf = Rand.shuffle(0 to n-1) // important
         val trainInds = indsShuf.filter(_!=i)
         trainInds.foreach{ i => orf.update(xs(i),ys(i).toInt) }
         val pred = orf.predict(xs(i))

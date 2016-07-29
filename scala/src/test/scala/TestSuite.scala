@@ -12,8 +12,7 @@ class TestSuite extends FunSuite {
     assert(!x.isLeaf && x.left.isLeaf)
   }
 
-  if (true) // off
-  test("ORT") {
+  if (true) test("ORT") {
     val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
     val n = iris.size
     val k = iris(0).size - 1
@@ -48,8 +47,7 @@ class TestSuite extends FunSuite {
     print(Console.RESET)
   }
 
-  if (true)
-  test("Online Read") {
+  if (true) test("Online Read") {
     val uspsTrain = scala.util.Random.shuffle(
       scala.io.Source.fromFile("src/test/resources/usps/train.csv").
       getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector)

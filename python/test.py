@@ -29,7 +29,7 @@ uspsTest = np.genfromtxt('../scala/src/test/resources/usps/test.csv', delimiter=
 y = np.array(uspsTrain[:,0],dtype=int)
 X = uspsTrain[:,1:]
 (n,k) = X.shape
-param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 100, 'minGain': .01, 'numTest': 10, 'gamma': 0}
+param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 700, 'minGain': .01, 'numTest': 10, 'gamma': 0}
 
 uspsORF = orf.ORF(param,orf.getRange(X))
 i = 0
@@ -45,4 +45,10 @@ for i in range(len(pred)):
 np.mean( pred ==  uspsTest[:,0])
 print orf.confusion(pred,uspsTest[:,0])
 
+# RF:
+from sklearn.ensemble import RandomForestClassifier
+rf = RandomForestClassifier(n_estimators=100,n_jobs=8)
+for i in np.linspace(n/10,n,10):
+    rf.fit(X[:i,:],y[:i])
+    print "RF-Brieman: %02d%s" % (np.mean( rf.predict(uspsTest[:,1:]) ==  uspsTest[:,0] ) * 100, "%") 
 
