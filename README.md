@@ -6,7 +6,9 @@ My implementation of Online Random Forest by Saffari
 ### Generating the jar file with sbt
 In the `sbt` directory in the terminal, execute
 `sbt package`. This will generate `orf_2.10-0.1-SNAPSHOT.jar` in 
-`sbt/scala/target/scala-2.10/`. 
+`sbt/scala/target/scala-2.10/`. To use it in a scala session, execute
+`scala -cp orf_2.10-0.1-SNAPSHOT.jar`. Import in scala using 
+`import ORF._ `.
 
 
 ### Developing and Testing
