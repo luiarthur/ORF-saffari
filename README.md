@@ -5,8 +5,26 @@ My implementation of Online Random Forest by Saffari
 Here is the simplest and recommended way of compiling and using `ORF.scala`.
 
 ## To Compile
-> scalac scala/src/main/scala/
-> 
+To generate a light jar file, 
+
+```bash
+cd etc
+./lightScalaCompile
+```
+
+A new jar file `orf.jar` will appear in `etc`.
+You can use this jar in a scala session by adding the classpath like so:
+
+```bash
+scala -cp orf.jar
+```
+
+And import it in scala like this:
+
+```scala
+import ORF._
+```
+
 
 
 # Generating the jar file with sbt (if you are developing the package)
