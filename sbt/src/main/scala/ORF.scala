@@ -1,6 +1,6 @@
 object ORF {
   import scala.math.{log,exp,sqrt}
-  val Rand = scala.util.Random
+  private val Rand = scala.util.Random
 
   // Tools:
   def dataRange(X: Vector[Vector[Double]]) = 
