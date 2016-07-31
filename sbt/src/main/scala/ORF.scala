@@ -58,8 +58,10 @@ object ORF {
     def draw = println(treeString)
   }
 
-  case class Param(numClasses: Int, minSamples: Int, minGain: Double,
-                   gamma: Int = 0, numTests: Int = 10, lam: Double=0)
+  case class Param(numClasses: Int, minSamples: Int, minGain: Double, 
+                   gamma: Int = 0, numTests: Int = 10, lam: Double=1) {
+    assert(lam <= 3, "Current implementation only supports lam <= 3. lam=1 is suitable for most bootstrapping cases.")
+  }
 
   case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
 
@@ -75,10 +77,10 @@ object ORF {
     def oobe = { (_oobe._1 zip _oobe._2) map {z => if (z._2 == 0) 0 else 1 - z._1 / z._2.toDouble} }.sum / numClasses
 
     private var _tree = Tree( Info() ) // Online Tree
+    def tree = _tree
     def reset = { 
       _tree = Tree( Info() )
     }
-    def tree = _tree
 
     private def findLeaf(x: Vector[Double], tree: Tree[Info]): Tree[Info] = {
       if (tree.isLeaf) tree else {
@@ -131,15 +133,12 @@ object ORF {
     private def gains(info: Info) = {
       val tests = info.tests
       val n = info.numSamples.toDouble
-      assert(n > 0, "Error: n cannot be 0")
       tests map { test =>
         val cL = test.cLeft
         val cR = test.cRight
         val g = loss(info.c) - cL.sum/n * loss(cL) - cR.sum/n * loss(cR)
-        if (g < 0) {
-          assert(g >= -1E-10, "Error: g = " +  g + "< 0")
-          0
-        } else g
+        //scala.math.max(g,0)
+        if (g < 0) 0 else g
       }
     }
 
@@ -178,7 +177,6 @@ object ORF {
           } else {
             test.cRight(y) += 1
           }
-          assert(test.cLeft.sum + test.cRight.sum <= numSamples, "Error: Info.update")
         }
       }
       
