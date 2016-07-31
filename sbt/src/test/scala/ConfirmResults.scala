@@ -15,9 +15,9 @@ object Confirmation {
   val ytest = uspsTest.map(yi => yi(0).toInt)
 
   println("Dim: " + X.size + "," + X(0).size)
-  val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, 
-                                 "alpha" -> n*.1, "beta" -> .04, 
-                                 "numTests" -> 10, "gamma" -> .0)
+  val param = Param(lam = 1, numClasses = y.toSet.size, 
+                    minSamples = n/10, minGain = .04, 
+                    numTests = 10, gamma = 0)
   val inds = Vector.range(0,n)
   val orf = Forest(param,dataRange(X),numTrees=100,par=true)
   val predAccs = Vector.range(0,10) map { it =>

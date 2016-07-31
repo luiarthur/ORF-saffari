@@ -28,8 +28,11 @@ object ORF {
   // Mutable Left, Right Tree
   case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
     def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
-    def nodes: List[Tree[T]] = if (isLeaf) List(this) else left.nodes ::: right.nodes ::: List(this)
-    def size = nodes.size
+    def size: Int = if (isLeaf) 1 else left.size + right.size + 1
+    def inOrder: List[T] = if (isLeaf) List(this.elem) else 
+      left.inOrder ::: List(this.elem) ::: right.inOrder
+    def preOrder: List[T] = if (isLeaf) List(this.elem) else 
+      List(this.elem) ::: left.inOrder ::: right.inOrder
 
     private def pretty(spacing: Int = 3): Vector[String] = {
       def rep(n: Int, s: String=" ") = List.fill(n)(s).mkString
@@ -55,18 +58,21 @@ object ORF {
     def draw = println(treeString)
   }
 
-  type Param = Map[String,Double]
+  case class Param(numClasses: Int, minSamples: Int, minGain: Double,
+                   gamma: Int = 0, numTests: Int = 10, lam: Double=0)
+
   case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
 
-    var age = 0
-    val lam = param("lam")
-    val numTests = if (param("numTests").toInt == 0) sqrt(xRange.size).toInt else param("numTests").toInt
-    val numClass = param("numClass").toInt
-    val minSamples = param("alpha").toInt
-    val minGain = param("beta")
+    private var _age = 0
+    def age = _age
+    val lam = param.lam
+    val numTests = if (param.numTests == 0) sqrt(xRange.size).toInt else param.numTests
+    val numClasses = param.numClasses
+    val minSamples = param.minSamples
+    val minGain = param.minGain
     val dimX = xRange.size
-    private val _oobe = (Array.fill(numClass)(0), Array.fill(numClass)(0)) // (# correct, # Total)
-    def oobe = { (_oobe._1 zip _oobe._2) map {z => if (z._2 == 0) 0 else 1 - z._1 / z._2.toDouble} }.sum / numClass
+    private val _oobe = (Array.fill(numClasses)(0), Array.fill(numClasses)(0)) // (# correct, # Total)
+    def oobe = { (_oobe._1 zip _oobe._2) map {z => if (z._2 == 0) 0 else 1 - z._1 / z._2.toDouble} }.sum / numClasses
 
     private var _tree = Tree( Info() ) // Online Tree
     def reset = { 
@@ -81,14 +87,14 @@ object ORF {
       }
     }
 
-    def predict(x: Vector[Double]) = findLeaf(x,_tree).elem.pred
-    def density(x: Vector[Double]) = findLeaf(x,_tree).elem.dens
+    def predict(x: Vector[Double]) = findLeaf(x,tree).elem.pred
+    def density(x: Vector[Double]) = findLeaf(x,tree).elem.dens
     
     def update(x: Vector[Double], y: Int) = { // Updates _tree
       val k = poisson(1)
       if (k > 0) {
         for (u <- 1 to k) {
-          age = age + 1
+          _age = _age + 1
           val j = findLeaf(x,_tree)
           j.elem.update(x,y)
           if (j.elem.numSamples > minSamples) {
@@ -138,27 +144,28 @@ object ORF {
     }
 
     case class Info( var splitDim: Int = -1, var splitLoc: Double = 0.0) {
-      var c = Array.fill(numClass)(0)
+      var c = Array.fill(numClasses)(0)
       def numSamples = c.sum
 
       case class Test(dim: Int, loc: Double, cLeft: Array[Int], cRight: Array[Int])
 
-      var tests = {
+      private var _tests = {
         def runif(rng: (Double,Double)) = Rand.nextDouble * (rng._2-rng._1) + rng._1
         def gentest = {
           val dim = Rand.nextInt(dimX)
           val loc = runif(xRange(dim))
-          val cLeft = Array.fill(numClass)(0)
-          val cRight = Array.fill(numClass)(0)
+          val cLeft = Array.fill(numClasses)(0)
+          val cRight = Array.fill(numClasses)(0)
           Test(dim,loc,cLeft,cRight)
         }
         Array.range(0, numTests) map {s => gentest}
       }
+      def tests = _tests
 
       // ToDo: ??? Gini importance: I = Gini - Gini_splitLeft - Gini_splitRight
       def reset = {
         c = Array()
-        tests = Array()
+        _tests = Array()
       }
 
       def update(x: Vector[Double], y: Int) = {
@@ -184,9 +191,9 @@ object ORF {
   } // end of case class OT
 
   case class Forest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100, par: Boolean = false) {
-    val gamma = param("gamma")
-    val lam = param("lam")
-    var _forest = {
+    val gamma = param.gamma
+    val lam = param.lam
+    private var _forest = {
       val f = Vector.range(1,numTrees) map { i => 
         val tree = OT(param,rng)
         tree
@@ -195,11 +202,11 @@ object ORF {
     }
     def forest = _forest
     def predict(x: Vector[Double]) = {
-      val preds = _forest.map(tree => tree.predict(x)) 
+      val preds = forest.map(tree => tree.predict(x)) 
       val predList = preds.groupBy(identity).toList
       predList.maxBy(_._2.size)._1
       /* Alternatively:
-      val dens = _forest.map(tree => tree.density(x))
+      val dens = forest.map(tree => tree.density(x))
       val inds = Vector.range(0,dens.head.size)
       val densMean = inds.map( i => dens.map(d => d(i)).sum / dens.size )
       val out = densMean.zipWithIndex.maxBy(_._1)._2
@@ -209,7 +216,7 @@ object ORF {
     def update(x: Vector[Double], y: Int) = {
       _forest.foreach( _.update(x,y) )
       if (gamma > 0) { // Algorithm 2: Temporal Knowledge Weighting
-        val oldTrees = _forest.filter( t => t.age > 1 / gamma)
+        val oldTrees = forest.filter( t => t.age > 1 / gamma)
         if (oldTrees.size > 0) {
           val t = oldTrees( Rand.nextInt(oldTrees.size) )
           if (t.oobe > Rand.nextDouble) t.reset
@@ -217,16 +224,16 @@ object ORF {
       }
     }
     def confusion(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
-      val numClass = param("numClass").toInt
+      val numClasses = param.numClasses
       val preds = xs.map(x => predict(x))
-      val conf = Array.fill(numClass)( Array.fill(numClass)(0) )
+      val conf = Array.fill(numClasses)( Array.fill(numClasses)(0) )
       for ( (y,pred) <- ys zip preds) conf(y)(pred) += 1
       conf
     }
     def printConfusion(conf: Array[Array[Int]]) = {
       println("Confusion Matrix:")
       print("y\\pred\t")
-      (0 until param("numClass").toInt).foreach( i => print(i + "\t") )
+      (0 until param.numClasses).foreach( i => print(i + "\t") )
       println("\n")
       var r = 0
       conf.foreach{ row => 
@@ -240,14 +247,14 @@ object ORF {
       val pt = (xs zip ys) map {z => predict(z._1) == z._2}
       pt.map(predEqualTruth => if (predEqualTruth) 1 else 0).sum / pt.size.toDouble
     }
-    def meanTreeSize = _forest.map{ot => ot.tree.size}.sum / _forest.size.toDouble
+    def meanTreeSize = forest.map{ot => ot.tree.size}.sum / forest.size.toDouble
 
     def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = { // for convenience
       assert(xs.size == ys.size, "Error: xs and ys need to have same length")
       val n = ys.size
-      val numClass = param("numClass").toInt
+      val numClasses = param.numClasses
       val inds = Vector.range(0,n)
-      val conf = Array.fill(numClass)( Array.fill(numClass)(0) )
+      val conf = Array.fill(numClasses)( Array.fill(numClasses)(0) )
       for (i <- inds) {
         val orf = Forest(param,rng,par=par)
         val indsShuf = Rand.shuffle(0 to n-1) // important

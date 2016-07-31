@@ -18,7 +18,8 @@ class TestSuite extends FunSuite {
     val k = iris(0).size - 1
     val y = iris.map( yi => {yi(k) - 1}.toInt )
     val X = iris.map(x => x.take(k))
-    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, "alpha" -> 5, "beta" -> .1, "numTests" -> 10, "gamma" -> .0)
+    val param = Param(numClasses = y.toSet.size, minSamples = 5, 
+      minGain = .1, numTests = 10, gamma = 0)
 
     val orf = Forest(param,dataRange(X))
     //assert(orf.forest(0) != orf.forest(1))
@@ -42,8 +43,7 @@ class TestSuite extends FunSuite {
     Timer.time {
       val conflooPar= orf.leaveOneOutCV(X,y,par=true)
       println("Parallel Leave One Out CV") // faster!!!
-      orf.printConfusion(conflooPar)
-    }
+      orf.printConfusion(conflooPar) }
     print(Console.RESET)
   }
 
@@ -59,9 +59,9 @@ class TestSuite extends FunSuite {
     val y = uspsTrain.map( _.head.toInt )
     val X = uspsTrain.map( _.tail )
     println("Dim: " + X.size + "," + X(0).size)
-    val param = Map[String,Double]("lam" -> 1, "numClass" -> y.toSet.size, 
-                                   "alpha" -> n*.1, "beta" -> .04, 
-                                   "numTests" -> 10, "gamma" -> .0)
+    val param = Param(lam = 1, numClasses = y.toSet.size, 
+                      minSamples = n/10, minGain = .04, 
+                      numTests = 10, gamma = 0)
     val inds = Vector.range(0,n)
     val orf = Forest(param,dataRange(X),numTrees=100,par=true)
     val indsten = Vector.range(0,10).flatMap( i => scala.util.Random.shuffle(inds))
