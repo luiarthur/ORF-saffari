@@ -137,7 +137,6 @@ object ORF {
         val cL = test.cLeft
         val cR = test.cRight
         val g = loss(info.c) - cL.sum/n * loss(cL) - cR.sum/n * loss(cR)
-        //scala.math.max(g,0)
         if (g < 0) 0 else g
       }
     }
@@ -222,6 +221,7 @@ object ORF {
       }
     }
     def confusion(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
       val numClasses = param.numClasses
       val preds = xs.map(x => predict(x))
       val conf = Array.fill(numClasses)( Array.fill(numClasses)(0) )
@@ -242,6 +242,7 @@ object ORF {
       }
     }
     def predAccuracy(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
       val pt = (xs zip ys) map {z => predict(z._1) == z._2}
       pt.map(predEqualTruth => if (predEqualTruth) 1 else 0).sum / pt.size.toDouble
     }
