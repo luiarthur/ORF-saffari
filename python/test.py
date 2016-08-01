@@ -47,7 +47,7 @@ print orf.confusion(pred,uspsTest[:,0])
 
 # RF:
 from sklearn.ensemble import RandomForestClassifier
-rf = RandomForestClassifier(n_estimators=100,n_jobs=8)
+rf = RandomForestClassifier(n_estimators=100,n_jobs=8,criterion="entropy")
 preds = np.zeros(10)
 counter = 0
 for ind in np.linspace(n/10,n,10):
@@ -59,3 +59,4 @@ for ind in np.linspace(n/10,n,10):
     counter += 1
 
 preds
+rf0 = rf.estimators_[99]
