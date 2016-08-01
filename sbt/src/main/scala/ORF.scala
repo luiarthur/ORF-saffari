@@ -144,7 +144,7 @@ object ORF {
       }
     }
 
-    case class Info( var splitDim: Int = -1, var splitLoc: Double = 0.0) {
+    case class Info(var splitDim: Int = -1, var splitLoc: Double = 0.0) {
       private var _numSamplesSeen = 0
       def numSamplesSeen = _numSamplesSeen
       var c = Array.fill(numClasses)(1)
