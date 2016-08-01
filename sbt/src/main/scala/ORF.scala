@@ -122,27 +122,29 @@ object ORF {
       }
     }
 
-    private def loss(c: Array[Int], gini: Boolean = true) = {
-      val n = c.sum.toDouble
+    private def loss(c: Array[Int], metric: String = "entropy") = {
+      val n = c.sum.toDouble + numClasses
       (c map { x => 
-        val p = if (n > 0) x / n else 1E-10
-        if (gini) p * (1-p) else -p * log(p) // Entropy
+        val p = x / n
+        if (metric == "gini") p * (1-p) else -p * log(p)
       }).sum
     }
 
     private def gains(info: Info) = {
       val tests = info.tests
-      val n = info.numSamples.toDouble
+      val n = info.numSamples.toDouble + numClasses
       tests map { test =>
         val cL = test.cLeft
+        val nL = cL.sum + numClasses
         val cR = test.cRight
-        val g = loss(info.c) - cL.sum/n * loss(cL) - cR.sum/n * loss(cR)
+        val nR = cR.sum + numClasses
+        val g = loss(info.c) - (nL/n) * loss(cL) - (nR/n) * loss(cR)
         if (g < 0) 0 else g
       }
     }
 
     case class Info( var splitDim: Int = -1, var splitLoc: Double = 0.0) {
-      var c = Array.fill(numClasses)(0)
+      var c = Array.fill(numClasses)(1)
       def numSamples = c.sum
 
       case class Test(dim: Int, loc: Double, cLeft: Array[Int], cRight: Array[Int])
@@ -152,8 +154,8 @@ object ORF {
         def gentest = {
           val dim = Rand.nextInt(dimX)
           val loc = runif(xRange(dim))
-          val cLeft = Array.fill(numClasses)(0)
-          val cRight = Array.fill(numClasses)(0)
+          val cLeft = Array.fill(numClasses)(1)
+          val cRight = Array.fill(numClasses)(1)
           Test(dim,loc,cLeft,cRight)
         }
         Array.range(0, numTests) map {s => gentest}
@@ -180,7 +182,7 @@ object ORF {
       }
       
       def pred = c.zipWithIndex.maxBy(_._1)._2
-      def dens = c.map { cc => cc / (numSamples.toDouble+1E-10) }
+      def dens = c.map { cc => cc / (numSamples.toDouble + numClasses) }
 
       override def toString(): String = 
         if (splitDim == -1) pred.toString else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0

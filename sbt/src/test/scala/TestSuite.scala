@@ -60,12 +60,15 @@ class TestSuite extends FunSuite {
     val X = uspsTrain.map( _.tail )
     println("Dim: " + X.size + "," + X(0).size)
     val param = Param(lam = 1, numClasses = y.toSet.size, 
-                      minSamples = n/10, minGain = .04, 
+                      minSamples = n/10, minGain = .1, 
                       numTests = 10, gamma = 0)
     val inds = Vector.range(0,n)
     val orf = Forest(param,dataRange(X),numTrees=100,par=true)
     val indsten = Vector.range(0,10).flatMap( i => scala.util.Random.shuffle(inds))
-    Timer.time {indsten.foreach{ i => orf.update(X(i),y(i).toInt) }}
+    Timer.time {indsten.foreach{ i => 
+      orf.update(X(i),y(i).toInt) 
+      print("\r"+orf.meanTreeSize+"              ")
+    }}
     //orf.forest.foreach( f => f.tree.draw )
 
     println("mean tree size: " + orf.meanTreeSize)
