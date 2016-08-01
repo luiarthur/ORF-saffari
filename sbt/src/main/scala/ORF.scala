@@ -29,6 +29,7 @@ object ORF {
   case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
     def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
     def size: Int = if (isLeaf) 1 else left.size + right.size + 1
+    def numLeaves: Int = if (isLeaf) 1 else left.numLeaves + right.numLeaves
     def inOrder: List[T] = if (isLeaf) List(this.elem) else 
       left.inOrder ::: List(this.elem) ::: right.inOrder
     def preOrder: List[T] = if (isLeaf) List(this.elem) else 
@@ -99,7 +100,7 @@ object ORF {
           _age = _age + 1
           val j = findLeaf(x,_tree)
           j.elem.update(x,y)
-          if (j.elem.numSamples > minSamples) {
+          if (j.elem.numSamplesSeen > minSamples) {
             val g = gains(j.elem)
             if ( g.exists(_ > minGain) ) {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
@@ -144,6 +145,8 @@ object ORF {
     }
 
     case class Info( var splitDim: Int = -1, var splitLoc: Double = 0.0) {
+      private var _numSamplesSeen = 0
+      def numSamplesSeen = _numSamplesSeen
       var c = Array.fill(numClasses)(1)
       def numSamples = c.sum
 
@@ -170,6 +173,7 @@ object ORF {
 
       def update(x: Vector[Double], y: Int) = {
         c(y) += 1
+        _numSamplesSeen = _numSamplesSeen + 1
         for (test <- tests) {
           val dim = test.dim
           val loc = test.loc
@@ -249,6 +253,7 @@ object ORF {
       pt.map(predEqualTruth => if (predEqualTruth) 1 else 0).sum / pt.size.toDouble
     }
     def meanTreeSize = forest.map{ot => ot.tree.size}.sum / forest.size.toDouble
+    def meanNumLeaves = forest.map{ot => ot.tree.numLeaves}.sum / forest.size.toDouble
 
     def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = { // for convenience
       assert(xs.size == ys.size, "Error: xs and ys need to have same length")

@@ -15,22 +15,24 @@ object Confirmation {
   val ytest = uspsTest.map(yi => yi(0).toInt)
 
   println("Dim: " + X.size + "," + X(0).size)
-  val param = Param(lam = 1, numClasses = y.toSet.size, 
-                    minSamples = n/10, minGain = .04, 
-                    numTests = 10, gamma = 0)
   val inds = Vector.range(0,n)
-  val orf = Forest(param,dataRange(X),numTrees=100,par=true)
-  val predAccs = Vector.range(0,10) map { it =>
-    val indShuff = scala.util.Random.shuffle(inds)
-    indShuff.foreach{ i => orf.update(X(i),y(i).toInt) }
-    println("mean tree size: " + orf.meanTreeSize)
-    println("c: " + orf.forest(0).tree.elem.c.mkString(","))
-    orf.predAccuracy(xtest,ytest) 
+
+  val ErrorRate = Timer.time {
+    // par: 50s, not par: 88s
+    (1 to 10).toList.par.map { it =>
+      val currentInds = inds.take( (n*it*.1).toInt )
+      val param = Param(lam = 1, numClasses = y.toSet.size, 
+                        minSamples = n/10, minGain = .1, 
+                        numTests = 10, gamma = 0)
+      val orf = Forest(param,dataRange(X),numTrees=100,par=true)
+
+      for (i <- 1 to 10) scala.util.Random.shuffle(currentInds).foreach( i => orf.update(X(i), y(i).toInt))
+      val predAcc = orf.predAccuracy(xtest,ytest) 
+      println("Iteration: "+Console.GREEN+it+Console.RESET)
+      println("N_train: " + currentInds.size)
+      println("mean number of leaves: " + orf.meanNumLeaves.toInt)
+      println("Error Rate: " + ((1-predAcc)*10000).toInt / 100 + "%" )
+      1-predAcc
+    }.toList
   }
-
-  val conf = orf.confusion(xtest,ytest)
-  print(Console.YELLOW)
-  orf.printConfusion(conf)
-  println(orf.predAccuracy(xtest,ytest) + Console.RESET)
-
 }

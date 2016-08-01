@@ -3,7 +3,7 @@ import numpy as np
 import random
 
 # Iris:
-iris = np.genfromtxt('../scala/src/test/resources/iris.csv', delimiter=',')
+iris = np.genfromtxt('../sbt/src/test/resources/iris.csv', delimiter=',')
 iris[:,4] -= 1
 np.random.shuffle(iris)
 X = iris[:,0:4]
@@ -24,8 +24,8 @@ np.mean( pred == y )
 orf.confusion(pred,y)
 
 # USPS:
-uspsTrain = np.genfromtxt('../scala/src/test/resources/usps/train.csv', delimiter=' ')
-uspsTest = np.genfromtxt('../scala/src/test/resources/usps/test.csv', delimiter=' ')
+uspsTrain = np.genfromtxt('../sbt/src/test/resources/usps/train.csv', delimiter=' ')
+uspsTest = np.genfromtxt('../sbt/src/test/resources/usps/test.csv', delimiter=' ')
 y = np.array(uspsTrain[:,0],dtype=int)
 X = uspsTrain[:,1:]
 (n,k) = X.shape
@@ -48,7 +48,14 @@ print orf.confusion(pred,uspsTest[:,0])
 # RF:
 from sklearn.ensemble import RandomForestClassifier
 rf = RandomForestClassifier(n_estimators=100,n_jobs=8)
-for i in np.linspace(n/10,n,10):
+preds = np.zeros(10)
+counter = 0
+for ind in np.linspace(n/10,n,10):
+    i = int(ind)
     rf.fit(X[:i,:],y[:i])
-    print "RF-Brieman: %02d%s" % (np.mean( rf.predict(uspsTest[:,1:]) ==  uspsTest[:,0] ) * 100, "%") 
+    pred = rf.predict(uspsTest[:,1:])
+    print "RF-Brieman: %02d%s" % (np.mean( pred  ==  uspsTest[:,0] ) * 100, "%") 
+    preds[counter] = np.mean(pred == uspsTest[:,0])
+    counter += 1
 
+preds
