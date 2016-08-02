@@ -70,7 +70,7 @@ class TestSuite extends FunSuite {
     println("Dim: " + X.size + "," + X(0).size)
     val param = Param(lam = 1, numClasses = y.toSet.size, 
                       minSamples = n/10, minGain = .1, 
-                      numTests = 10, gamma = 0)
+                      numTests = 10, gamma = 0, metric="entropy")
     val inds = Vector.range(0,n)
     val orf = Forest(param,dataRange(X),numTrees=100,par=true)
     val indsten = Vector.range(0,10).flatMap( i => scala.util.Random.shuffle(inds))

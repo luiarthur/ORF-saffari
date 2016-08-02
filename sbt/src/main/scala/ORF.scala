@@ -62,7 +62,8 @@ object ORF {
   }
 
   case class Param(numClasses: Int, minSamples: Int, minGain: Double, 
-                   gamma: Int = 0, numTests: Int = 10, lam: Double=1) {
+                   gamma: Double = 0, numTests: Int = 10, lam: Double=1,
+                   metric: String = "entropy") {
     assert(lam <= 10, "Current implementation only supports lam <= 10. lam=1 is suitable for most bootstrapping cases.")
   }
 
@@ -83,6 +84,11 @@ object ORF {
     def tree = _tree
     def reset = { 
       _tree = Tree( Info() )
+      _age = 0
+      for (d <- 0 until numClasses) {
+        _oobe._1(d) = 0
+        _oobe._2(d) = 0
+      }
     }
 
     private def findLeaf(x: Vector[Double], tree: Tree[Info]): Tree[Info] = {
@@ -125,7 +131,7 @@ object ORF {
       }
     }
 
-    private def loss(c: Array[Int], metric: String = "entropy") = {
+    private def loss(c: Array[Int], metric: String = param.metric) = {
       val n = c.sum.toDouble + numClasses
       (c map { x => 
         val p = x / n
