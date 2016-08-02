@@ -1,39 +1,49 @@
 object Confirmation {
   import ORF._
+  import scala.util.Random.shuffle
 
-  val uspsTrain = scala.util.Random.shuffle(
-    scala.io.Source.fromFile("src/test/resources/usps/train.csv").
-    getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector)
+  val uspsTrain = scala.io.Source.fromFile("src/test/resources/usps/train.csv").
+    getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
   val uspsTest = scala.io.Source.fromFile("src/test/resources/usps/test.csv").
     getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
 
-  val n = uspsTrain.size
-  val k = uspsTrain(0).size - 1
   val y = uspsTrain.map( _.head.toInt )
   val X = uspsTrain.map( _.tail )
-  val xtest = uspsTest.map(x => x.tail)
-  val ytest = uspsTest.map(yi => yi(0).toInt)
+  val xtest = uspsTest.map( _.tail )
+  val ytest = uspsTest.map( _.head.toInt )
 
   println("Dim: " + X.size + "," + X(0).size)
-  val inds = Vector.range(0,n)
 
-  val ErrorRate = Timer.time {
-    // par: 50s, not par: 88s
-    (1 to 10).toList.par.map { it =>
-      val currentInds = inds.take( (n*it*.1).toInt )
-      val param = Param(lam = 1, numClasses = y.toSet.size, 
-                        minSamples = n/10, minGain = .1, 
-                        numTests = 10, gamma = 0)
-      val orf = Forest(param,dataRange(X),numTrees=100,par=true)
+  type VDD = Vector[Vector[Double]]
+  type VI = Vector[Int]
 
-      for (i <- 1 to 10) scala.util.Random.shuffle(currentInds).foreach( i => orf.update(X(i), y(i).toInt))
-      val predAcc = orf.predAccuracy(xtest,ytest) 
-      println("Iteration: "+Console.GREEN+it+Console.RESET)
-      println("N_train: " + currentInds.size)
-      println("mean number of leaves: " + orf.meanNumLeaves.toInt)
-      println("mean max depth: " + orf.meanMaxDepth.toInt)
-      println("Error Rate: " + ((1-predAcc)*10000).toInt / 100 + "%" )
-      1-predAcc
-    }.toList
+  def train(X: VDD, y: VI, xtest: VDD, ytest: VI, percentage: Double, shuffles: Int = 10, lam: Double = 1) = {
+    val N = y.size
+    val k = y.toSet.size
+    val inds = Vector.range(0,N)
+    val xrng = dataRange(X)
+
+    val currentInds = shuffle(inds).take( (N*percentage).toInt )
+    val n = currentInds.size
+    val param = Param(lam = lam, numClasses = k, 
+                      minSamples = n/10, minGain = .1, 
+                      numTests = 10, gamma = 0)
+
+    val orf = Forest(param,xrng,numTrees=100,par=true)
+    for (i <- 1 to shuffles) shuffle(currentInds).foreach( i => orf.update(X(i), y(i).toInt))
+    val predAcc = orf.predAccuracy(xtest,ytest) 
+
+    println("Percentage of Data: "+Console.GREEN+percentage+Console.RESET)
+    println("N_train: " + currentInds.size)
+    println("mean number of leaves: " + orf.meanNumLeaves.toInt)
+    println("mean max depth: " + orf.meanMaxDepth.toInt)
+    println("Error Rate: " + Console.BLUE + ((1-predAcc)*10000).toInt / 100 + "%" + Console.RESET)
+    1-predAcc
   }
+
+  val errorRate = Timer.time {
+    Vector.tabulate(20)(i => (i+1) / 20.0).par map { p =>
+      train(X,y,xtest,ytest,p,1)
+    }
+  }.toList
 }

@@ -63,7 +63,7 @@ object ORF {
 
   case class Param(numClasses: Int, minSamples: Int, minGain: Double, 
                    gamma: Int = 0, numTests: Int = 10, lam: Double=1) {
-    assert(lam <= 3, "Current implementation only supports lam <= 3. lam=1 is suitable for most bootstrapping cases.")
+    assert(lam <= 10, "Current implementation only supports lam <= 10. lam=1 is suitable for most bootstrapping cases.")
   }
 
   case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
@@ -96,7 +96,7 @@ object ORF {
     def density(x: Vector[Double]) = findLeaf(x,tree).elem.dens
     
     def update(x: Vector[Double], y: Int) = { // Updates _tree
-      val k = poisson(1)
+      val k = poisson(lam)
       if (k > 0) {
         for (u <- 1 to k) {
           _age = _age + 1
