@@ -12,6 +12,15 @@ class TestSuite extends FunSuite {
     assert(!x.isLeaf && x.left.isLeaf)
   }
 
+  test("max depth") {
+    val t = Tree(1)
+    val t2 = Tree(1,Tree(2),Tree(3))
+    val t3 = Tree(1,Tree(4,t2,t),Tree(5,Tree(6),t2))
+    val t4 = t3.copy()
+    t4.right = Tree(5)
+    assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
+  }
+
   if (true) test("ORT") {
     val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
     val n = iris.size
@@ -67,11 +76,12 @@ class TestSuite extends FunSuite {
     val indsten = Vector.range(0,10).flatMap( i => scala.util.Random.shuffle(inds))
     Timer.time {indsten.foreach{ i => 
       orf.update(X(i),y(i).toInt) 
-      print("\r"+orf.meanTreeSize+"              ")
+      print("\r"+orf.meanTreeSize.toInt+"              ")
     }}
     //orf.forest.foreach( f => f.tree.draw )
 
     println("mean tree size: " + orf.meanTreeSize)
+    println("mean tree Depth: " + orf.meanMaxDepth)
     println("c: " + orf.forest(0).tree.elem.c.mkString(","))
 
     val xtest = uspsTest.map(x => x.tail)

@@ -34,6 +34,8 @@ object ORF {
       left.inOrder ::: List(this.elem) ::: right.inOrder
     def preOrder: List[T] = if (isLeaf) List(this.elem) else 
       List(this.elem) ::: left.inOrder ::: right.inOrder
+    private def md(s: Int): Int = if (isLeaf) s else scala.math.max(left.md(s+1),right.md(s+1))
+    def maxDepth = md(1)
 
     private def pretty(spacing: Int = 3): Vector[String] = {
       def rep(n: Int, s: String=" ") = List.fill(n)(s).mkString
@@ -133,12 +135,12 @@ object ORF {
 
     private def gains(info: Info) = {
       val tests = info.tests
-      val n = info.numSamples.toDouble + numClasses
       tests map { test =>
         val cL = test.cLeft
         val nL = cL.sum + numClasses
         val cR = test.cRight
         val nR = cR.sum + numClasses
+        val n = (nL + nR).toDouble
         val g = loss(info.c) - (nL/n) * loss(cL) - (nR/n) * loss(cR)
         if (g < 0) 0 else g
       }
@@ -188,8 +190,7 @@ object ORF {
       def pred = c.zipWithIndex.maxBy(_._1)._2
       def dens = c.map { cc => cc / (numSamples.toDouble + numClasses) }
 
-      override def toString(): String = 
-        if (splitDim == -1) pred.toString else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
+      override def toString = if (splitDim == -1) pred.toString else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
     } // end of case class Info
   } // end of case class OT
 
@@ -254,6 +255,12 @@ object ORF {
     }
     def meanTreeSize = forest.map{ot => ot.tree.size}.sum / forest.size.toDouble
     def meanNumLeaves = forest.map{ot => ot.tree.numLeaves}.sum / forest.size.toDouble
+    def meanMaxDepth = forest.map{ot => ot.tree.maxDepth}.sum / forest.size.toDouble
+    private def sd(xs: Vector[Int]) = {
+      val n = xs.size.toDouble
+      val mean = xs.sum / n
+      sqrt( xs.map(x => (x-mean) * (x-mean) ).sum / (n-1) )
+    }
 
     def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = { // for convenience
       assert(xs.size == ys.size, "Error: xs and ys need to have same length")

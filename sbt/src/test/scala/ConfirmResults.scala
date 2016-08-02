@@ -31,6 +31,7 @@ object Confirmation {
       println("Iteration: "+Console.GREEN+it+Console.RESET)
       println("N_train: " + currentInds.size)
       println("mean number of leaves: " + orf.meanNumLeaves.toInt)
+      println("mean max depth: " + orf.meanMaxDepth.toInt)
       println("Error Rate: " + ((1-predAcc)*10000).toInt / 100 + "%" )
       1-predAcc
     }.toList
