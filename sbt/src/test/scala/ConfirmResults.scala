@@ -47,7 +47,7 @@ object Confirmation {
   }
 
   val errorRate = Timer.time {
-    Vector.tabulate(20)(i => (i+1) / 20.0).par map { p =>
+    Vector.tabulate(10)(i => (i+1) / 10.0).par map { p =>
       train(X,y,xtest,ytest,percentage=p,shuffles=10)
     }
   }.toList
@@ -59,5 +59,5 @@ object Confirmation {
   }
   f.value.get
 
-  train(X,y,xtest,ytest,percentage=1,shuffles=10,gamma=1/800.0)
+  train(X,y,xtest,ytest,percentage=1,shuffles=10,gamma=1/90000.0)
 }
