@@ -1,65 +1,11 @@
-object ORF {
-  import scala.math.{log,exp,sqrt}
-  private val Rand = scala.util.Random
+package ORF
 
-  // Tools:
-  def dataRange(X: Vector[Vector[Double]]) = 
-    Vector.range(0,X(0).size) map {j => 
-      val colj = X map {x => x(j)}
-      (colj.max, colj.min)
-    }
-  def dataClasses(y: Vector[Double]) = y.toSet.size
-  def normalize(X: Vector[Vector[Double]]) = {
-    val rng = dataRange(X)
-    val n = X.size
-    val k = X(0).size
-    Vector.range(0,n) map { i =>
-      Vector.range(0,k) map { j => 
-        ( X(i)(j) - rng(j)._1 ) / ( rng(j)._2 - rng(j)._1)
-      }
-    }
-  }
-  private def poisson(lam: Double) = {
-    val l = exp(-lam)
-    def loop(k: Int, p: Double): Int = if (p > l) loop(k+1, p * Rand.nextDouble) else k - 1
-    loop(0,1)
-  }
-
-  // Mutable Left, Right Tree
-  case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
-    def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
-    def size: Int = if (isLeaf) 1 else left.size + right.size + 1
-    def numLeaves: Int = if (isLeaf) 1 else left.numLeaves + right.numLeaves
-    def inOrder: List[T] = if (isLeaf) List(this.elem) else 
-      left.inOrder ::: List(this.elem) ::: right.inOrder
-    def preOrder: List[T] = if (isLeaf) List(this.elem) else 
-      List(this.elem) ::: left.inOrder ::: right.inOrder
-    private def md(s: Int): Int = if (isLeaf) s else scala.math.max(left.md(s+1),right.md(s+1))
-    def maxDepth = md(1)
-
-    private def pretty(spacing: Int = 3): Vector[String] = {
-      def rep(n: Int, s: String=" ") = List.fill(n)(s).mkString
-      def paste(l: Vector[String], r: Vector[String]) = {
-        def elongate(vs: Vector[String]) = {
-          val maxCol = vs.map(_.size).max
-          vs.map( s => s + rep(maxCol - s.size) )
-        }
-        val maxRow = List(l,r).map(_.size).max
-        val newlr = Vector(l,r).map(x => x ++ Vector.fill(maxRow-x.size)("")).map(elongate(_))
-        val out = for (i <- (0 until maxRow)) yield newlr(0)(i) + newlr(1)(i)
-        out.toVector
-      }
-      val ps = elem.toString
-      val List(ls,rs) = List(left,right).map(x => if (x.isLeaf) Vector(x.elem.toString) else x.pretty(spacing))
-      val posL = ls(0).indexOf(left.elem.toString)
-      val posR = rs(0).indexOf(right.elem.toString)
-      val top = rep(posL) + rep(spacing+ls(0).size-posL,"_") + ps + rep(spacing+posR,"_") + rep(rs(0).size-posR)
-      val bottom = List(ls, Vector(rep(spacing*2 + ps.size)), rs).reduce(paste)
-      Vector(top) ++ bottom
-    }
-    def treeString = if (isLeaf) "Leaf(" + elem.toString + ")" else "\n" + pretty(spacing=1).mkString("\n") + "\n"
-    def draw = println(treeString)
-  }
+/** ORF.Classification: Online Random Forest Classification version
+ *
+ */
+object Classification {
+  import ORF.Tree
+  private val Rand = new scala.util.Random
 
   case class Param(numClasses: Int, minSamples: Int, minGain: Double, 
                    gamma: Double = 0, numTests: Int = 10, lam: Double=1,
@@ -67,12 +13,11 @@ object ORF {
     assert(lam <= 10, "Current implementation only supports lam <= 10. lam=1 is suitable for most bootstrapping cases.")
   }
 
-  case class ORT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
-
+  case class ORTree (param: Param, xRange: Vector[(Double,Double)]) { // for classification
     private var _age = 0
     def age = _age
     val lam = param.lam
-    val numTests = if (param.numTests == 0) sqrt(xRange.size).toInt else param.numTests
+    val numTests = if (param.numTests == 0) scala.math.sqrt(xRange.size).toInt else param.numTests
     val numClasses = param.numClasses
     val minSamples = param.minSamples
     val minGain = param.minGain
@@ -100,6 +45,11 @@ object ORF {
 
     def predict(x: Vector[Double]) = findLeaf(x,tree).elem.pred
     def density(x: Vector[Double]) = findLeaf(x,tree).elem.dens
+    private def poisson(lam: Double) = {
+      val l = scala.math.exp(-lam)
+      def loop(k: Int, p: Double): Int = if (p > l) loop(k+1, p * Rand.nextDouble) else k - 1
+      loop(0,1)
+    }
     
     def update(x: Vector[Double], y: Int) = { // Updates _tree
       val k = poisson(lam)
@@ -135,7 +85,7 @@ object ORF {
       val n = c.sum.toDouble + numClasses
       (c map { x => 
         val p = x / n
-        if (metric == "gini") p * (1-p) else -p * log(p)
+        if (metric == "gini") p * (1-p) else -p * scala.math.log(p)
       }).sum
     }
 
@@ -200,12 +150,12 @@ object ORF {
     } // end of case class Info
   } // end of case class ORT
 
-  case class Forest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100, par: Boolean = false) {
+  case class ORForest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100, par: Boolean = false) {
     val gamma = param.gamma
     val lam = param.lam
     private var _forest = {
       val f = Vector.range(1,numTrees) map { i => 
-        val tree = ORT(param,rng)
+        val tree = ORTree(param,rng)
         tree
       }
       if (par) f.par else f
@@ -265,7 +215,7 @@ object ORF {
     private def sd(xs: Vector[Int]) = {
       val n = xs.size.toDouble
       val mean = xs.sum / n
-      sqrt( xs.map(x => (x-mean) * (x-mean) ).sum / (n-1) )
+      scala.math.sqrt( xs.map(x => (x-mean) * (x-mean) ).sum / (n-1) )
     }
 
     def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = { // for convenience
@@ -275,7 +225,7 @@ object ORF {
       val inds = Vector.range(0,n)
       val conf = Array.fill(numClasses)( Array.fill(numClasses)(0) )
       for (i <- inds) {
-        val orf = Forest(param,rng,par=par)
+        val orf = ORForest(param,rng,par=par)
         val indsShuf = Rand.shuffle(0 to n-1) // important
         val trainInds = indsShuf.filter(_!=i)
         trainInds.foreach{ i => orf.update(xs(i),ys(i).toInt) }

@@ -1,10 +1,12 @@
 import org.scalatest.FunSuite
 
 class TestSuite extends FunSuite {
-  import ORF._
+  import ORF.Classification._
+  import ORF.Tools.dataRange
   import Timer.time
 
   test("Drawing / testing trees") {
+    import ORF.Tree
     val x = Tree(1,Tree(202),Tree(303))
     x.draw
     x.left.draw
@@ -13,6 +15,7 @@ class TestSuite extends FunSuite {
   }
 
   test("max depth") {
+    import ORF.Tree
     val t = Tree(1)
     val t2 = Tree(1,Tree(2),Tree(3))
     val t3 = Tree(1,Tree(4,t2,t),Tree(5,Tree(6),t2))
@@ -30,7 +33,7 @@ class TestSuite extends FunSuite {
     val param = Param(numClasses = y.toSet.size, minSamples = 5, 
       minGain = .1, numTests = 10, gamma = 0)
 
-    val orf = Forest(param,dataRange(X))
+    val orf = ORForest(param,dataRange(X))
     //assert(orf.forest(0) != orf.forest(1))
 
     val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
@@ -56,7 +59,7 @@ class TestSuite extends FunSuite {
     print(Console.RESET)
   }
 
-  if (true) test("Online Read") {
+  if (false) test("Online Read") {
     val uspsTrain = scala.util.Random.shuffle(
       scala.io.Source.fromFile("src/test/resources/usps/train.csv").
       getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector)
@@ -72,7 +75,7 @@ class TestSuite extends FunSuite {
                       minSamples = n/10, minGain = .1, 
                       numTests = 10, gamma = 0, metric="entropy")
     val inds = Vector.range(0,n)
-    val orf = Forest(param,dataRange(X),numTrees=100,par=true)
+    val orf = ORForest(param,dataRange(X),numTrees=100,par=true)
     val indsten = Vector.range(0,10).flatMap( i => scala.util.Random.shuffle(inds))
     Timer.time {indsten.foreach{ i => 
       orf.update(X(i),y(i).toInt) 

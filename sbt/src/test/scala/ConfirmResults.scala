@@ -1,5 +1,6 @@
 object Confirmation {
-  import ORF._
+  import ORF.Classification._
+  import ORF.Tools.dataRange
   import scala.util.Random.shuffle
 
   // futures
@@ -33,7 +34,7 @@ object Confirmation {
                       minSamples = n/10, minGain = .1, 
                       numTests = 10, gamma = gamma)
 
-    val orf = Forest(param,xrng,numTrees=100,par=true)
+    val orf = ORForest(param,xrng,numTrees=100,par=true)
     for (i <- 1 to shuffles) shuffle(currentInds).foreach( i => orf.update(X(i), y(i).toInt))
     val predAcc = orf.predAccuracy(xtest,ytest) 
 

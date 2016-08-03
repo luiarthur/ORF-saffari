@@ -1,6 +1,6 @@
 name := "orf"
 
-version := "v0.1"
+version := "v0.2"
 
 scalaVersion := "2.10.6"
 
