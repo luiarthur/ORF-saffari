@@ -121,27 +121,32 @@ object Regression {
     case class Info(var splitDim: Int = -1, var splitLoc: Double = 0.0) {
       private var _numSamplesSeen = 0
       def numSamplesSeen = _numSamplesSeen
-      var sumY = 0.0
-      var ssY = 0.0
+      var sumC = 0.0
+      var ssC = 0.0
 
-      case class Test(dim: Int, loc: Double, sumLeft: Array[Int], sumRight: Array[Int])
+      case class Test(dim: Int, loc: Double) {
+          var sumL = 0.0
+          var ssL = 0.0
+          var nL = 0
+
+          var sumR = 0.0
+          var ssR = 0.0
+          var nR = 0
+      }
 
       private var _tests = {
         def runif(rng: (Double,Double)) = Rand.nextDouble * (rng._2-rng._1) + rng._1
         def gentest = {
           val dim = Rand.nextInt(dimX)
           val loc = runif(xrng(dim))
-          var sumLeft = 0
-          var sumRight = 0
-          Test(dim,loc,cLeft,cRight)
+          Test(dim,loc)
         }
         Array.range(0, numTests) map {s => gentest}
       }
       def tests = _tests
 
       def reset = {
-        c = ???
-        _tests = ???
+        _tests = Array()
       }
 
       def update(x: Vector[Double], y: Int) = {
