@@ -67,7 +67,7 @@ object ORF {
     assert(lam <= 10, "Current implementation only supports lam <= 10. lam=1 is suitable for most bootstrapping cases.")
   }
 
-  case class OT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
+  case class ORT (param: Param, xRange: Vector[(Double,Double)]) { // for classification
 
     private var _age = 0
     def age = _age
@@ -198,14 +198,14 @@ object ORF {
 
       override def toString = if (splitDim == -1) pred.toString else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
     } // end of case class Info
-  } // end of case class OT
+  } // end of case class ORT
 
   case class Forest(param: Param, rng: Vector[(Double,Double)], numTrees: Int = 100, par: Boolean = false) {
     val gamma = param.gamma
     val lam = param.lam
     private var _forest = {
       val f = Vector.range(1,numTrees) map { i => 
-        val tree = OT(param,rng)
+        val tree = ORT(param,rng)
         tree
       }
       if (par) f.par else f
