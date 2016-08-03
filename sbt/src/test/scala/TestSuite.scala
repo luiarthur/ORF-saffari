@@ -1,6 +1,7 @@
 import org.scalatest.FunSuite
 
 class TestSuite extends FunSuite {
+  def round(x: Double, d: Int = 2) = (scala.math.pow(10,d) * x).toInt / scala.math.pow(10,d)
   import ORF.Classification._
   import ORF.Tools.dataRange
   import Timer.time
@@ -48,7 +49,10 @@ class TestSuite extends FunSuite {
     print(Console.YELLOW)
     orf.printConfusion(conf)
     println(orf.predAccuracy(xtest,ytest) + Console.RESET)
-    println("mean tree size: " + orf.meanTreeSize)
+    println("tree size:       " + round(orf.meanTreeSize)  + " +/- " + round(orf.sdTreeSize))
+    println("tree max depth:  " + round(orf.meanMaxDepth)  + " +/- " + round(orf.sdMaxDepth))
+    println("tree num leaves: " + round(orf.meanNumLeaves) + " +/- " + round(orf.sdNumLeaves))
+
     //orf.forest.foreach( tree => println(tree.oobe) )
 
     println
