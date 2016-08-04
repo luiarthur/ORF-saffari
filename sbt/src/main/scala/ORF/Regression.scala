@@ -214,7 +214,7 @@ object Regression {
     }
 
     /** update the random forest based on new observations x, y */
-    def update(x: Vector[Double], y: Int) = {
+    def update(x: Vector[Double], y: Double) = {
       _forest.foreach( _.update(x,y) )
       if (gamma > 0) { // Algorithm 2: Temporal Knowledge Weighting
         val oldTrees = forest.filter( t => t.age > 1 / gamma)

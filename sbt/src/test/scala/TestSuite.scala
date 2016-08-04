@@ -29,13 +29,15 @@ class TestSuite extends FunSuite {
     val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
     val n = iris.size
     val k = iris(0).size - 1
-    val y = iris.map( yi => {yi(k) - 1} + scala.util.Random.nextDouble / 5 )
+    val y = iris.map( yi => {yi(k) - 1} + scala.util.Random.nextDouble / 10 )
     val X = iris.map(x => x.take(k))
     val param = Param(minSamples = 5, minGain = .2)
 
     val orf = ORForest(param,dataRange(X))
-    for (i <- 0 until n) orf.update(X(i),y(i).toInt)
+    for (i <- 0 until n) orf.update(X(i),y(i))
     println("RMSE:" +  orf.rmse(X,y) )
+    val preds = Vector.range(0,n).map(i => orf.predict(X(i)))
+    Vector.range(0,n).foreach( i => println(y(i), preds(i)) )
   }
 
 
