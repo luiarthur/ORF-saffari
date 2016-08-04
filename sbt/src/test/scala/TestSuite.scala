@@ -2,7 +2,6 @@ import org.scalatest.FunSuite
 
 class TestSuite extends FunSuite {
   def round(x: Double, d: Int = 2) = (scala.math.pow(10,d) * x).toInt / scala.math.pow(10,d)
-  import ORF.Classification._
   import ORF.Tools.dataRange
   import Timer.time
 
@@ -25,7 +24,25 @@ class TestSuite extends FunSuite {
     assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
   }
 
-  if (true) test("ORT") {
+  test("ORF Regression") {
+    import ORF.Regression._
+    val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
+    val n = iris.size
+    val k = iris(0).size - 1
+    val y = iris.map( yi => {yi(k) - 1} + scala.util.Random.nextDouble / 5 )
+    val X = iris.map(x => x.take(k))
+    val param = Param(minSamples = 5, minGain = .2)
+
+    val ort = ORTree(param,dataRange(X))
+    for (i <- 0 until n) ort.update(X(i),y(i).toInt)
+    print(Console.RED)
+    ort.tree.draw
+    print(Console.RESET)
+  }
+
+
+  if (false) test("ORT") {
+    import ORF.Classification._
     val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
     val n = iris.size
     val k = iris(0).size - 1
@@ -64,6 +81,7 @@ class TestSuite extends FunSuite {
   }
 
   if (false) test("Online Read") {
+    import ORF.Classification._
     val uspsTrain = scala.util.Random.shuffle(
       scala.io.Source.fromFile("src/test/resources/usps/train.csv").
       getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector)

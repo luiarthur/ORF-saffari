@@ -12,7 +12,7 @@ object Regression {
    *  @param numTests  the number of tests (split dimension, location) each node does. (default=10)
    *  @param lam  the mean parameter in the poisson distribution. Should be set to 1 (default=1)
    */
-  case class Param(numClasses: Int, minSamples: Int, minGain: Double, gamma: Double = 0, numTests: Int = 10, lam: Double=1) {
+  case class Param(minSamples: Int, minGain: Double, gamma: Double = 0, numTests: Int = 10, lam: Double=1) {
     assert(lam <= 5, "Current implementation (Knuth) only supports small lam. lam=1 is suitable for most bootstrapping cases.")
   }
 
@@ -38,11 +38,10 @@ object Regression {
 
     /** out of bag error (oobe = rmse) of online random tree*/
     def oobe = {
-      val ybar = oobSumY / oobNum
-      scala.math.sqrt( oobSumSqY / oobNum - ybar*ybar  )
+      scala.math.sqrt( oobSSDiff / oobNum )
     }
     private var oobNum = 0L
-    private var oobSumY, oobSumSqY = 0.0
+    private var oobSSDiff = 0.0
 
     /** the online random tree*/
     def tree = _tree
@@ -53,8 +52,7 @@ object Regression {
       _tree = Tree( Info() )
       _age = 0
       oobNum = 0
-      oobSumY = 0
-      oobSumSqY = 0
+      oobSSDiff = 0
     }
 
     private def findLeaf(x: Vector[Double], tree: Tree[Info]): Tree[Info] = {
@@ -66,8 +64,6 @@ object Regression {
 
     /** Online Random Tree Prediction based on (x) */
     def predict(x: Vector[Double]) = findLeaf(x,tree).elem.pred
-    /** Online Random Tree Prediction based on (x) */
-    def density(x: Vector[Double]) = findLeaf(x,tree).elem.dens
 
     /** sample from poisson. lam should ideally always be 1. */
     private def poisson(lam: Double) = {
@@ -77,7 +73,7 @@ object Regression {
     }
     
     /** update _tree based on new observations x, y */
-    def update(x: Vector[Double], y: Int) = {
+    def update(x: Vector[Double], y: Double) = {
       val k = poisson(lam)
       if (k > 0) {
         for (u <- 1 to k) {
@@ -89,49 +85,80 @@ object Regression {
             if ( g.exists(_ > minGain) ) {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
               // create Left, Right children
-              j.left = Tree( Info() )
-              j.right = Tree( Info() )
+              val (infoL,infoR) = (Info(), Info())
+              infoL.updateSuffStats(bestTest.statsL)
+              infoR.updateSuffStats(bestTest.statsR)
+              j.left  = Tree( infoL )
+              j.right = Tree( infoR )
               j.elem.splitDim = bestTest.dim
               j.elem.splitLoc = bestTest.loc
-              j.left.elem.c = bestTest.cLeft
-              j.right.elem.c = bestTest.cRight
               j.elem.reset
+              tree.draw
             }
           }
         }
       } else { // k > 0
         // estimate OOBE: Used for Temporal Knowledge Weighting
         val pred = predict(x)
-        _oobe = ???
+        oobNum += 1
+        oobSSDiff += (pred - y) * (pred - y)
       }
     }
 
-    private def loss(c: Array[Int]) = {
-      ???
+    private def loss(stats: (Double,Double,Int)) = { // rmse
+      val (sum,ss,n) = stats
+      val xbar = sum/n
+      ss / n - xbar * xbar
     }
 
     private def gains(info: Info) = {
+      val stats = info.stats
+      val n = stats._3.toDouble
       val tests = info.tests
       tests map { test =>
-        ???
+        val nL = test.statsL._3
+        val nR = test.statsR._3
+        loss(stats) - (nL/n) * loss(test.statsL) - (nR/n) * loss(test.statsR)
       }
     }
 
     /** Info holds the information within the nodes of the tree */
     case class Info(var splitDim: Int = -1, var splitLoc: Double = 0.0) {
+      private var _sumC = 0.0
+      private var _ssC  = 0.0
       private var _numSamplesSeen = 0
       def numSamplesSeen = _numSamplesSeen
-      var sumC = 0.0
-      var ssC = 0.0
+      def stats = (_sumC,_ssC,_numSamplesSeen)
 
-      case class Test(dim: Int, loc: Double) {
-          var sumL = 0.0
-          var ssL = 0.0
-          var nL = 0
+      def updateSuffStats(stats: (Double,Double,Int) ) = {
+        _sumC = stats._1
+        _ssC  = stats._2
+        _numSamplesSeen = stats._3
+      }
 
-          var sumR = 0.0
-          var ssR = 0.0
-          var nR = 0
+      class Test(val dim: Int, val loc: Double) { // No side effects
+        private var _sumL = 0.0
+        private var _ssL  = 0.0
+        private var _nL   = 0
+
+        private var _sumR = 0.0
+        private var _ssR  = 0.0
+        private var _nR   = 0
+
+        def updateL(y: Double) = {
+          _sumL += y
+          _ssL  += y*y
+          _nL   += 1
+        }
+
+        def updateR(y: Double) = {
+          _sumR += y
+          _ssR  += y*y
+          _nR   += 1
+        }
+
+        def statsL = (_sumL,_ssL,_nL)
+        def statsR = (_sumR,_ssR,_nR)
       }
 
       private var _tests = {
@@ -139,32 +166,22 @@ object Regression {
         def gentest = {
           val dim = Rand.nextInt(dimX)
           val loc = runif(xrng(dim))
-          Test(dim,loc)
+          new Test(dim,loc)
         }
         Array.range(0, numTests) map {s => gentest}
       }
       def tests = _tests
+      def reset = { _tests = Array() }
 
-      def reset = {
-        _tests = Array()
-      }
-
-      def update(x: Vector[Double], y: Int) = {
-        c(y) += 1
+      def update(x: Vector[Double], y: Double) = {
+        _sumC += y
+        _ssC += y*y
         _numSamplesSeen += 1
-        for (test <- tests) {
-          val dim = test.dim
-          val loc = test.loc
-          if (x(dim) < loc) {
-            test.cLeft(y) += 1
-          } else {
-            test.cRight(y) += 1
-          }
-        }
+
+        _tests.foreach( test => if (x(test.dim) < test.loc) test.updateL(y) else test.updateR(y) )
       }
       
-      def pred = c.zipWithIndex.maxBy(_._1)._2
-      def dens = c.map { cc => cc / (numSamples.toDouble + numClasses) }
+      def pred = _sumC / _numSamplesSeen
 
       override def toString = if (splitDim == -1) pred.toString else "X" + (splitDim+1) + " < " + (splitLoc * 100).round / 100.0
     } // end of case class Info
