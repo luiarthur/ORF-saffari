@@ -1,31 +1,20 @@
 package ORF
 
-case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
-  /** true if the node is a leaf, false otherwise. */
+object Tree { def apply[T](elem: T): Tree[T] = Tree(elem, null, null) }
+case class Tree[T](elem: T, left: Tree[T], right: Tree[T]) {
   def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
-
-  /** returns number of nodes in tree */
   def size: Int = if (isLeaf) 1 else left.size + right.size + 1
-
-  /** returns number of leaves in tree */
   def numLeaves: Int = if (isLeaf) 1 else left.numLeaves + right.numLeaves
 
-  /** return elements in tree traversed in-order */
   def inOrder: List[T] = if (isLeaf) List(this.elem) else 
     left.inOrder ::: List(this.elem) ::: right.inOrder
-
-  /** return elements in tree traversed pre-order */
   def preOrder: List[T] = if (isLeaf) List(this.elem) else 
     List(this.elem) ::: left.inOrder ::: right.inOrder
 
-  /** return the maximum depth of the tree*/
   def maxDepth = md(1)
   private def md(s: Int): Int = if (isLeaf) s else scala.math.max(left.md(s+1),right.md(s+1))
 
-  /** returns a pretty string for the tree*/
   def treeString = if (isLeaf) "Leaf(" + elem.toString + ")" else "\n" + pretty(spacing=1).mkString("\n") + "\n"
-
-  /** prints the pretty tree. Just: println(treeString) */
   def draw = println(treeString)
 
   private def pretty(spacing: Int = 3): Vector[String] = {
