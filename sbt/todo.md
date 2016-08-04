@@ -1,8 +1,10 @@
 # To do in v0.2
 
-- Tree.scala should be moved to test
+- Tree in Tree.scala should be immutable
+- Everything else should be immutable
+- start with classification. Don't mind regression for now.
 - ORF should be pacakged
-- Classification and Regression in seperate files under ORF dir
+
 
 ## ORF.Classification
 
@@ -11,4 +13,4 @@
 
 ## ORF.Regression
 
-- implement this
+- This may need fixing.
