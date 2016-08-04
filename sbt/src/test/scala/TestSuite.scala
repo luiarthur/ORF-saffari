@@ -33,11 +33,9 @@ class TestSuite extends FunSuite {
     val X = iris.map(x => x.take(k))
     val param = Param(minSamples = 5, minGain = .2)
 
-    val ort = ORTree(param,dataRange(X))
-    for (i <- 0 until n) ort.update(X(i),y(i).toInt)
-    print(Console.RED)
-    ort.tree.draw
-    print(Console.RESET)
+    val orf = ORForest(param,dataRange(X))
+    for (i <- 0 until n) orf.update(X(i),y(i).toInt)
+    println("RMSE:" +  orf.rmse(X,y) )
   }
 
 
