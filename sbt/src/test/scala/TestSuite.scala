@@ -20,7 +20,28 @@ class TestSuite extends FunSuite {
     val t2 = Tree(1,Tree(2),Tree(3))
     val t3 = Tree(1,Tree(4,t2,t),Tree(5,Tree(6),t2))
     val t4 = t3.copy()
+    //t4.right = Tree(5)
     assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
+  }
+
+  test("ORT Immutable") {
+    import ORF.ClassificationImmutable._
+    val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
+    val n = iris.size
+    val k = iris(0).size - 1
+    val y = iris.map( yi => {yi(k) - 1}.toInt )
+    val X = iris.map(x => x.take(k))
+
+    val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
+    val (testInds, trainInds) = inds.partition( _ % 5 == 0)
+    //trainInds.foreach{ i => orf.update(X(i),y(i).toInt) }
+
+    def trainModel(ort: ORTree, i: Int): ORTree = if (i < n) trainModel(ort.update(X(i),y(i).toInt),i+1) else ort
+
+    val param = Param(numClasses = y.toSet.size, minSamples = 5, minGain = .1, numTests = 10, gamma = 0)
+    val ort = trainModel(ORTree(param,dataRange(X)),0) 
+    println("Here it is")
+    ort.draw
   }
 
   //if (false) test("ORF Regression") {
