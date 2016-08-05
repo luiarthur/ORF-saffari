@@ -106,7 +106,7 @@ object ClassificationImmutable {
   } // end of ORTree
 
 
-  case class ORForest(param: Param, xrng: Vector[(Double,Double)], numTrees: Int = 100, parallel: Boolean = true) {
+  case class ORForest(param: Param, xrng: Vector[(Double,Double)], numTrees: Int = 100) {
 
     private var _forest = List.fill(numTrees)(ORTree(param,xrng)).par
     def forest = _forest
@@ -146,6 +146,21 @@ object ClassificationImmutable {
       }
       conf
     }
+
+    def printConfusion(conf: Array[Array[Int]]) = {
+      println("Confusion Matrix:")
+      print("y\\pred\t")
+      (0 until param.numClasses).foreach( i => print(i + "\t") )
+      println("\n")
+      var r = 0
+      conf.foreach{ row => 
+        print(r + "\t")
+        r = r + 1
+        row.foreach(c => print(c + "\t"))
+        println("\n")
+      }
+    }
+
   } // end of ORForest
 
 }

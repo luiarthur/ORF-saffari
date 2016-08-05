@@ -60,6 +60,9 @@ class TestSuite extends FunSuite {
     trainInds.foreach( i => orf.update(X(i),y(i)) )
     val predAcc = orf.predAccuracy(xtest,ytest)
     println("prediction accuracy: "+ predAcc)
+
+    val conf = time { ORForest(param,xrng).leaveOneOutCV(X,y,par=true) }
+    orf.printConfusion(conf)
   }
 
   //test("ORF Conf timing") {
