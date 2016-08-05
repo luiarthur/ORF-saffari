@@ -24,39 +24,41 @@ class TestSuite extends FunSuite {
     assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
   }
 
+  val iris = scala.util.Random.shuffle( 
+    scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector)
+  val n = iris.size
+  val k = iris(0).size - 1
+  val X = iris.map(x => x.take(k))
+  val inds = (0 to n-1) // important that order is shuffled
+  val (testInds, trainInds) = inds.partition( _ % 5 == 0)
+
   test("ORF Regression") {
     import ORF.Regression._
-    val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
-    val n = iris.size
-    val k = iris(0).size - 1
-    val y = iris.map( yi => {yi(k) - 1} + scala.util.Random.nextDouble / 10 )
-    val X = iris.map(x => x.take(k))
-    val param = Param(minSamples = 5, minGain = .2)
 
+    val y = iris.map( yi => (yi(k) - 1) + (scala.util.Random.nextDouble-.5)/100  )
+    val param = Param(minSamples = 10, minGain = .1)
     val orf = ORForest(param,dataRange(X))
-    for (i <- 0 until n) orf.update(X(i),y(i))
-    println("RMSE:" +  orf.rmse(X,y) )
+    trainInds.foreach( i => orf.update(X(i),y(i)) )
     val preds = Vector.range(0,n).map(i => orf.predict(X(i)))
+
     Vector.range(0,n).foreach( i => println(y(i), preds(i)) )
+    println("tree size:       " + round(orf.meanTreeSize)  + " +/- " + round(orf.sdTreeSize))
+    println("tree max depth:  " + round(orf.meanMaxDepth)  + " +/- " + round(orf.sdMaxDepth))
+    println("tree num leaves: " + round(orf.meanNumLeaves) + " +/- " + round(orf.sdNumLeaves))
+    println("RMSE:" +  orf.rmse(X,y) )
   }
 
 
   if (false) test("ORT") {
     import ORF.Classification._
-    val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
-    val n = iris.size
-    val k = iris(0).size - 1
+
     val y = iris.map( yi => {yi(k) - 1}.toInt )
-    val X = iris.map(x => x.take(k))
     val param = Param(numClasses = y.toSet.size, minSamples = 5, 
       minGain = .1, numTests = 10, gamma = 0)
 
     val orf = ORForest(param,dataRange(X))
     //assert(orf.forest(0) != orf.forest(1))
 
-    val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
-
-    val (testInds, trainInds) = inds.partition( _ % 5 == 0)
     trainInds.foreach{ i => orf.update(X(i),y(i).toInt) }
     orf.forest(0).tree.draw
     orf.forest(1).tree.draw
