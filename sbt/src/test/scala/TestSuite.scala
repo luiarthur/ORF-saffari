@@ -24,26 +24,56 @@ class TestSuite extends FunSuite {
     assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
   }
 
+  val iris = scala.util.Random.shuffle(scala.io.Source.fromFile("src/test/resources/iris.csv").
+    getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector)
+  val n = iris.size
+  val k = iris(0).size - 1
+  val y = iris.map( yi => {yi(k) - 1}.toInt )
+  val X = iris.map(x => x.take(k))
+  val inds = scala.util.Random.shuffle(List.range(0,n)) // important that order is shuffled
+  val (testInds, trainInds) = inds.partition( _ % 5 == 0)
+  val xtest = testInds.map(X(_)).toVector
+  val ytest = testInds.map(y(_).toInt).toVector
+
   test("ORT Immutable") {
     import ORF.ClassificationImmutable._
-    val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
-    val n = iris.size
-    val k = iris(0).size - 1
-    val y = iris.map( yi => {yi(k) - 1}.toInt )
-    val X = iris.map(x => x.take(k))
 
-    val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
-    val (testInds, trainInds) = inds.partition( _ % 5 == 0)
-    //trainInds.foreach{ i => orf.update(X(i),y(i).toInt) }
+    def trainModel(ort: ORTree, inds: List[Int]): ORTree = 
+      if (inds.size > 0) {
+        val j = inds.head
+        trainModel(ort.update(X(j),y(j).toInt),inds.tail) 
+      } else ort
 
-    def trainModel(ort: ORTree, i: Int): ORTree = if (i < n) trainModel(ort.update(X(i),y(i).toInt),i+1) else ort
-
-    val param = Param(numClasses = y.toSet.size, minSamples = 5, minGain = .1, numTests = 10, gamma = 0)
-    val ort = trainModel(ORTree(param,dataRange(X)),0) 
-    println("Here it is")
+    val param = Param(numClasses = y.toSet.size, minSamples = 5, minGain = .01, numTests = 10, gamma = 0)
+    val ort = trainModel( ORTree(param,dataRange(X)), trainInds) 
+    println("ort.draw: ")
     ort.draw
   }
 
+  test("ORF Immutable") {
+    import ORF.ClassificationImmutable._
+
+    val numTrees = 100
+    val param = Param(numClasses = y.toSet.size, minSamples = 5, minGain = .01, numTests = 10, gamma = 0)
+    val xrng = dataRange(X)
+    val orf = ORForest(param,xrng,numTrees)
+    trainInds.foreach( i => orf.update(X(i),y(i)) )
+    val predAcc = orf.predAccuracy(xtest,ytest)
+    println("prediction accuracy: "+ predAcc)
+  }
+
+  //test("ORF Conf timing") {
+  //  import ORF.ClassificationImmutable._
+
+  //  val numTrees = 100
+  //  val param = Param(numClasses = y.toSet.size, minSamples = 5, minGain = .01, numTests = 10, gamma = 0)
+  //  val xrng = dataRange(X)
+  //  val orf = ORForest(param,xrng,numTrees)
+  //  trainInds.foreach( i => orf.update(X(i),y(i)) )
+  //  val predAcc = orf.predAccuracy(xtest,ytest)
+  //  println("prediction accuracy: "+ predAcc)
+  //}
+  
   //if (false) test("ORF Regression") {
   //  import ORF.Regression._
   //  val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector

@@ -33,43 +33,49 @@ object ClassificationImmutable {
       new ORTree(e, l, r, param, xrng, age)
     def apply(param: Param, xrng: Vector[(Double,Double)]): ORTree = {
       val c = Vector.fill(param.numClasses)(0)
-      val t = generateTests(param.numTests,param.numClasses,xrng)
+      val t = generateTests(param.numTests, param.numClasses, xrng)
       new ORTree(Elem(counts=c,tests=t), null, null, param, xrng, 0)
     }
   }
-  class ORTree(elem: Elem = Elem(), left: ORTree, right: ORTree, param: Param, xrng: Vector[(Double,Double)], 
-                age: Int = 0) extends Tree[Elem](elem,left,right) {
+  class ORTree(override val elem: Elem = Elem(), override val left: ORTree, override val right: ORTree, 
+                val param: Param, val xrng: Vector[(Double,Double)], val age: Int = 0) extends Tree[Elem](elem,left,right) {
 
-    private def loopUpdate(x: Vector[Double], y: Int, k: Int): ORTree = { // core of algorithm
-      if (k==0) {
-        // compute oobe
-        this
-      } else {
-        // starts here
-        val newAge = if (k==1) age + 1 else age
-        if (isLeaf) {
-          val updatedElem = elem.update(x,y)
-          val g = gains(updatedElem)
-          val newTree = if ( updatedElem.numSamplesSeen > param.minSamples && g.exists(_ > param.minGain) ) {
-            val bestTest = g.zip(updatedElem.tests).maxBy(_._1)._2
-            val l = ORTree(Elem(counts=bestTest.countsLeft,tests=generateTests(param.numTests,param.numClasses,xrng)),param,xrng,newAge)
-            val r = ORTree(Elem(counts=bestTest.countsRight,tests=generateTests(param.numTests,param.numClasses,xrng)),param,xrng,newAge)
-            ORTree(Elem(splitDim=bestTest.dim, splitLoc=bestTest.loc),l,r,param,xrng,newAge) 
-          } else this
-          newTree.loopUpdate(x,y,k-1)
-        } else { // not a leaf
-          val (dim,loc) = (elem.splitDim, elem.splitLoc)
-          if (x(dim) < loc) ORTree(elem,left.loopUpdate(x,y,k),null,param,xrng,newAge) else 
-            ORTree(elem,right.loopUpdate(x,y,k),null,param,xrng,newAge)
-        }
-        // ends here
+    private def singleUpdate(x: Vector[Double], y: Int): ORTree = { // core of algorithm
+      if (isLeaf) {
+        val newAge = age + 1
+        val updatedElem = elem.update(x,y)
+        val g = gains(updatedElem)
+        val newTree = if ( updatedElem.numSamplesSeen > param.minSamples && g.exists(_ > param.minGain) ) {
+          val bestTest = g.zip(updatedElem.tests).maxBy(_._1)._2
+          val l = ORTree(Elem(counts=bestTest.countsLeft, tests=generateTests(param.numTests,param.numClasses,xrng)),param,xrng,newAge)
+          val r = ORTree(Elem(counts=bestTest.countsRight,tests=generateTests(param.numTests,param.numClasses,xrng)),param,xrng,newAge)
+          ORTree(Elem(splitDim=bestTest.dim, splitLoc=bestTest.loc),l,r,param,xrng,newAge) 
+        } else ORTree(updatedElem,param,xrng,newAge)
+        newTree
+      } else { // not a leaf
+        val (dim,loc) = (elem.splitDim, elem.splitLoc)
+        if (x(dim) < loc) ORTree(elem,left.singleUpdate(x,y),right,param,xrng,age) else 
+          ORTree(elem,left,right.singleUpdate(x,y),param,xrng,age)
       }
     }
 
     def update(x: Vector[Double], y: Int) = {
       val k = poisson(param.lam)
-      loopUpdate(x,y,k)
+      def loop(tree:ORTree, k: Int): ORTree = 
+        if (k==0) {
+          // compute oobe
+          tree 
+        } else loop( tree.singleUpdate(x,y), k-1)
+
+      loop(ORTree(elem,left,right,param,xrng,age),k)
     }
+
+    def predict(x: Vector[Double]) = findLeaf(x).elem.pred
+    private def findLeaf(x: Vector[Double]): ORTree =
+      if (isLeaf) this else {
+        val (dim,loc) = (elem.splitDim, elem.splitLoc)
+        if ( x(dim) > loc ) right.findLeaf(x) else left.findLeaf(x)
+      }
 
     val dimX = xrng.size
     private def gains(elem: Elem) = {
@@ -80,7 +86,7 @@ object ClassificationImmutable {
         val nL = cL.sum + nc
         val cR = test.countsRight
         val nR = cR.sum + nc
-        val n = (nL + nR).toDouble
+        val n = (nL + nR) + nc.toDouble
         val g = loss(elem.counts) - (nL/n) * loss(cL) - (nR/n) * loss(cR)
         if (g < 0) 0 else g
       }
@@ -89,7 +95,7 @@ object ClassificationImmutable {
       val n = counts.sum.toDouble + param.numClasses.toDouble
       (counts map { x =>
         val p = x / n
-        -p * scala.math.log(p)
+        -p * scala.math.log(p) // entropy
       }).sum
     }
     private def poisson(lam: Double) = {
@@ -98,4 +104,48 @@ object ClassificationImmutable {
       loop(0,1)
     }
   } // end of ORTree
+
+
+  case class ORForest(param: Param, xrng: Vector[(Double,Double)], numTrees: Int = 100, parallel: Boolean = true) {
+
+    private var _forest = List.fill(numTrees)(ORTree(param,xrng)).par
+    def forest = _forest
+
+    def update(x: Vector[Double], y: Int) = {
+      val newForest =  _forest map { _.update(x,y) }
+      _forest = newForest
+    }
+
+    def predict(x: Vector[Double]) = {
+      assert(x.size == xrng.size, "Error in Forest.predict. x has the wrong size...")
+      val preds = forest map { _.predict(x) }
+      val predList = preds.groupBy(identity).toList
+      predList.maxBy(_._2.size)._1
+    }
+
+    def predAccuracy(xs: Vector[Vector[Double]], ys: Vector[Int]) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+      val pt = (xs zip ys) map {z => predict(z._1) == z._2}
+      pt.map(predEqualTruth => if (predEqualTruth) 1 else 0).sum / pt.size.toDouble
+    }
+
+    def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+      val n = ys.size
+      val numClasses = param.numClasses
+      val inds = Vector.range(0,n)
+      val conf = Array.fill(numClasses)( Array.fill(numClasses)(0) )
+      for (i <- inds) {
+        val orf = ORForest(param,xrng)
+        val indsShuf = Rand.shuffle(0 to n-1) // important
+        val trainInds = indsShuf.filter(_!=i)
+        trainInds.foreach{ i => orf.update(xs(i),ys(i).toInt) }
+        val pred = orf.predict(xs(i))
+        val curr = conf(ys(i))(pred)
+        conf(ys(i))(pred) = curr + 1
+      }
+      conf
+    }
+  } // end of ORForest
+
 }
