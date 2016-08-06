@@ -153,11 +153,9 @@ object Template {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
               // create Left, Right children
               j.elem.updateSplit(bestTest.dim, bestTest.loc)
-              j.left = Tree(newElem)
-              j.right = Tree(newElem)
+              j.updateChildren(Tree(newElem), Tree(newElem))
               j.left.elem.stats  = bestTest.statsL
               j.right.elem.stats = bestTest.statsR
-              //j.updateChildren(Tree(newElem), Tree(newElem))
               //j.elem.reset // FIXME
             }
           }

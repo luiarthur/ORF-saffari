@@ -8,3 +8,4 @@
 - Make tree always be binary. def updateChildren(l,r)
 - make classify.scala functions private?
 - extend classify.scala to have forest
+- fix reset in update
