@@ -1,7 +1,7 @@
 package ORF
 
 object Tree { def apply[T](elem: T): Tree[T] = Tree(elem, null, null) }
-case class Tree[T](elem: T, private var _left: Tree[T], private var _right: Tree[T]) {
+case class Tree[T](val elem: T, private var _left: Tree[T], private var _right: Tree[T]) {
   def left  = _left
   def right = _right
   def updateChildren(l: Tree[T], r: Tree[T]) = { _left = l; _right = r }
