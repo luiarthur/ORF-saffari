@@ -1,6 +1,10 @@
 package ORF
 
-case class Tree[T](elem: T, var left: Tree[T] = null, var right: Tree[T] = null) {
+object Tree { def apply[T](elem: T): Tree[T] = Tree(elem, null, null) }
+case class Tree[T](elem: T, private var _left: Tree[T], private var _right: Tree[T]) {
+  def left  = _left
+  def right = _right
+  def updateChildren(l: Tree[T], r: Tree[T]) = { _left = l; _right = r }
   /** true if the node is a leaf, false otherwise. */
   def isLeaf = (left,right) match {case (null,null) => true; case _ => false}
 

@@ -20,8 +20,8 @@ class TestSuite extends FunSuite {
     val t2 = Tree(1,Tree(2),Tree(3))
     val t3 = Tree(1,Tree(4,t2,t),Tree(5,Tree(6),t2))
     val t4 = t3.copy()
-    t4.right = Tree(5)
-    assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
+    t4.updateChildren(Tree(5),Tree(6))
+    assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 2)
   }
 
   test("ORF Regression") {

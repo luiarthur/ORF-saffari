@@ -88,8 +88,7 @@ object Regression {
               val (infoL,infoR) = (Info(), Info())
               infoL.updateSuffStats(bestTest.statsL)
               infoR.updateSuffStats(bestTest.statsR)
-              j.left  = Tree( infoL )
-              j.right = Tree( infoR )
+              j.updateChildren(Tree(infoL), Tree(infoR))
               j.elem.splitDim = bestTest.dim
               j.elem.splitLoc = bestTest.loc
               j.elem.reset

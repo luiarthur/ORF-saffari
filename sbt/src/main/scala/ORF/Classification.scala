@@ -90,8 +90,7 @@ object Classification {
             if ( g.exists(_ > minGain) ) {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
               // create Left, Right children
-              j.left = Tree( Info() )
-              j.right = Tree( Info() )
+              j.updateChildren(Tree(Info()), Tree(Info()))
               j.elem.splitDim = bestTest.dim
               j.elem.splitLoc = bestTest.loc
               j.left.elem.c = bestTest.cLeft
