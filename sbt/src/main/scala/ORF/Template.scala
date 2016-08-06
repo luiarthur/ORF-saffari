@@ -68,6 +68,7 @@ object Template {
 
     private var _tree = Tree( elem )
     def tree = _tree
+    def reset: Unit
 
     private var _age = 0
     def age = _age
