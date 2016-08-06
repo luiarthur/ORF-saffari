@@ -13,40 +13,48 @@ object Template {
    *  @param numTests  the number of tests (split dimension, location) each node does. (default=10)
    *  @param xrng
    */
-  case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int = 0, numTests: Int = 10, gamma: Double = 0)
+  case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int, numTests: Int = 10, gamma: Double = 0)
 
   // Sufficient Statistics
   trait SuffStats {
     def n: Int
-    def update(x: Vector[Double], y: Double): Unit
+    def update(y: Double): Unit
+    def reset: Unit
+    def pred: Double
   }
-  case class ClsSuffStats(counts: Array[Int], private var _n: Int) extends SuffStats {
+  case class ClsSuffStats(private var _counts: Array[Int], private var _n: Int) extends SuffStats {
     def n = _n
-    def update(x: Vector[Double], y: Double) = { 
-      counts(y.toInt) += 1 
+    def counts = _counts
+    def update(y: Double) = { 
+      _counts(y.toInt) += 1 
       _n += 1
     }
+    def reset = { _counts=Array(); _n=0 }
+    def pred = _counts.zipWithIndex.maxBy(_._1)._2
+    override def toString = counts.mkString(",") + " | " + n
   }
   case class RegSuffStats(private var _sum: Double, private var _ss: Double, private var _n: Int) extends SuffStats {
     def n = _n
-    def update(x: Vector[Double], y: Double) = {
+    def sum = _sum
+    def ss  = _ss
+    def update(y: Double) = {
       _sum += y
       _ss += y*y
       _n += 1
     }
+    def reset = { _sum=0; _ss=0; _n=0 }
+    def pred = 1 // FIXME
   }
 
   // Decision Tests
   abstract case class Test(dim: Int, loc: Double) {
     val statsL: SuffStats
     val statsR: SuffStats
-    def updateL(x: Vector[Double], y: Double) = statsL.update(x,y)
-    def updateR(x: Vector[Double], y: Double) = statsR.update(x,y)
-
+    def update(x: Vector[Double], y: Double) = if (x(dim) < loc) statsL.update(y) else statsR.update(y)
   }
   class ClsTest(dim: Int, loc: Double, numClasses: Int) extends Test (dim,loc) { // No side effects
-    val statsL = ClsSuffStats(Array.fill(numClasses)(0), 0) // fix this
-    val statsR = ClsSuffStats(Array.fill(numClasses)(0), 0) // fix this
+    val statsL = ClsSuffStats(Array.fill(numClasses)(1), 0)
+    val statsR = ClsSuffStats(Array.fill(numClasses)(1), 0)
   }
   class RegTest(dim: Int, loc: Double) extends Test(dim,loc) { // no side effects
     val statsL = RegSuffStats(0,0,0)
@@ -58,11 +66,18 @@ object Template {
   abstract case class Elem(private var _splitDim: Int = -1, private var _splitLoc: Double = 0, private var _numSamplesSeen: Int = 0) {
     def updateSplit(dim: Int, loc: Double) = { _splitDim=dim; _splitLoc=loc }
     def split = (_splitDim, _splitLoc)
-    //def reset: Unit
+    def reset: Unit 
+
     def stats: SuffStats
+    def stats_=(newStats: Any): Unit
+    //var stats: SuffStats
+
     def tests: Vector[Test]
-    def update(x: Vector[Double], y: Double): Unit
-    def pred: Double
+    def update(x: Vector[Double], y: Double) = { 
+      stats.update(y)
+      tests foreach { _.update(x,y) }
+    }
+    def pred = stats.pred
     //def reset: Unit
     override def toString = if (_splitDim == -1) pred.toString else "X" + (_splitDim+1) + " < " + (_splitLoc * 100).round / 100.0
   }
@@ -70,17 +85,14 @@ object Template {
   class ClsElem(var _splitDim: Int, var _splitLoc: Double, var _numSamplesSeen: Int, val param: Param) extends Elem {
     //def reset = stats.
     val dimX = param.xrng.size
-    private var _stats = ClsSuffStats(Array.fill(param.numClasses)(0),0)
     private var _tests = Vector.range(0,param.numTests) map {t => generateTest}
-    def stats = _stats
     def tests = _tests
-    def pred = stats.counts.zipWithIndex.maxBy(_._1)._2
-    def reset = { 
-      _stats = ClsSuffStats(Array(),0) 
-      _tests = Vector()
-    }
-    def update(x: Vector[Double], y: Double) = {
-      
+
+    private var _stats = ClsSuffStats(Array.fill(param.numClasses)(1),0)
+    def stats = _stats
+    def stats_=(newStats: Any) = newStats match {
+      case ns: ClsSuffStats => _stats = ns
+      case _ => println("Something is wrong")
     }
 
     def generateTest = {
@@ -88,43 +100,65 @@ object Template {
       val loc = runif(param.xrng(dim))
       new ClsTest(dim, loc, param.numClasses)
     }
+
+    def reset = {
+      _stats.reset
+      _tests = Vector()
+    }
+    //def dens = c.map { cc => cc / (numSamples.toDouble + numClasses) }
   }
 
   
 
-  abstract case class ORTree(elem: Elem, param: Param, xrng: Vector[(Double,Double)]) {
+  abstract case class ORTree(elem: Elem, param: Param) {
     import ORF.Tree
+
+    def loss(suff: Any): Double
+    def updateOOBE(x: Vector[Double], y: Double): Unit
+    def newElem: Elem
+    //def reset: Unit
+
+    private def gains[E <: Elem](elem: E): Vector[Double] = {
+      val tests = elem.tests
+      val s = elem.stats
+      tests map { test =>
+        val sL = test.statsL
+        val nL = sL.n + param.numClasses
+        val sR = test.statsR
+        val nR = sR.n + param.numClasses
+        val n = (nL + nR).toDouble
+        val g = loss(s) - (nL/n) * loss(sL) - (nR/n) * loss(sR)
+        if (g < 0) 0 else g
+      }
+    }
 
     private var _tree = Tree( elem )
     def tree = _tree
-    def reset: Unit
 
     private var _age = 0
     def age = _age
 
-    private val dimX = xrng.size
-    def loss(elem: Elem): Double
-    def gains(elem: Elem): Vector[Double]
-    def updateOOBE(x: Vector[Double], y: Double): Unit
+    private val dimX = param.xrng.size
 
-    val newElem: Elem
     def update(x: Vector[Double], y: Double) {
       val k = poisson(1)
       if (k > 0) {
         for (u <- 1 to k) {
           _age += 1
           val j = findLeaf(x,_tree)
-          j.elem.update(y)
+          j.elem.update(x,y)
           if (j.elem.stats.n > param.minSamples) {
             val g = gains(j.elem)
             if ( g.exists(_ > param.minGain) ) {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
               // create Left, Right children
-              j.updateChildren(Tree(newElem), Tree(newElem))
               j.elem.updateSplit(bestTest.dim, bestTest.loc)
-              //j.left.elem.stats = bestTest.statsL
-              //j.right.elem.stats = bestTest.statsR
-              //j.elem.reset
+              j.left = Tree(newElem)
+              j.right = Tree(newElem)
+              j.left.elem.stats  = bestTest.statsL
+              j.right.elem.stats = bestTest.statsR
+              //j.updateChildren(Tree(newElem), Tree(newElem))
+              //j.elem.reset // FIXME
             }
           }
         }
@@ -134,12 +168,13 @@ object Template {
       }
     }
 
-    private def findLeaf(x: Vector[Double], tree: Tree[Elem]): Tree[Elem] = {
+    def findLeaf(x: Vector[Double], tree: Tree[Elem]): Tree[Elem] = {
       if (tree.isLeaf) tree else {
         val (dim,loc) = tree.elem.split
         if ( x(dim) > loc ) findLeaf(x, tree.right) else findLeaf(x, tree.left)
       }
     }
+    def predict(x: Vector[Double]) = findLeaf(x,tree).elem.pred
     private def poisson(lam: Double) = {
       val l = scala.math.exp(-lam)
       def loop(k: Int, p: Double): Int = if (p > l) loop(k+1, p * Rand.nextDouble) else k - 1

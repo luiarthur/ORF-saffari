@@ -4,6 +4,7 @@ class TestSuite extends FunSuite {
   def round(x: Double, d: Int = 2) = (scala.math.pow(10,d) * x).toInt / scala.math.pow(10,d)
   import ORF.Tools.dataRange
   import Timer.time
+  import ORF.Template._
 
   test("Drawing / testing trees") {
     import ORF.Tree
@@ -20,9 +21,46 @@ class TestSuite extends FunSuite {
     val t2 = Tree(1,Tree(2),Tree(3))
     val t3 = Tree(1,Tree(4,t2,t),Tree(5,Tree(6),t2))
     val t4 = t3.copy()
-    t4.updateChildren(Tree(5),Tree(6))
-    assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 2)
+    //t4.updateChildren(Tree(5),Tree(6))
+    t4.right = Tree(5)
+    assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4 && t4.maxDepth == 4)
   }
+
+  val iris = scala.util.Random.shuffle(
+    scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector)
+  val n = iris.size
+  val k = iris(0).size - 1
+  val y = iris.map( yi => yi(k) - 1)
+  val X = iris.map(x => x.take(k))
+  val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(X), numClasses=y.toSet.size)
+  val inds = (0 to n-1)
+  val (testInds, trainInds) = inds.partition( _ % 5 == 0)
+  val xtest = testInds.map(X(_)).toVector
+  val ytest = testInds.map(y(_)).toVector
+
+  test("Template") {
+    import ORF.Classification.Classify
+    val ort = Classify(param)
+    inds foreach { i => ort.update(X(i),y(i)) }
+    ort.tree.draw
+  }
+  
+  test("Forest") {
+    import ORF.Classification.Classify
+    val orf = List.fill(100)(Classify(param)).par
+
+    trainInds foreach { i => orf.foreach(tree => tree.update(X(i),y(i))) }
+
+    val preds = xtest map { xt => 
+      val preds = orf.map( tree => tree.predict(xt) ) 
+      val predList = preds.groupBy(identity).toList
+      predList.maxBy(_._2.size)._1
+    }
+
+    val bools = {preds zip ytest} map {z => if (z._1 == z._2) 1.0 else 0.0}
+    println("Test Accuracy: " + bools.sum / bools.size)
+  }
+
 
   //test("ORF Regression") {
   //  import ORF.Regression._
