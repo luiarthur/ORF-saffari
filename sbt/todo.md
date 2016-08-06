@@ -5,3 +5,6 @@
 - Need the implementation to be clean
 - run Brian Gallager's python on RZ.
 
+- Make tree always be binary. def updateChildren(l,r)
+- make classify.scala functions private?
+- extend classify.scala to have forest
