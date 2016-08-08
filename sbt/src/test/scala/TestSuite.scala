@@ -45,7 +45,7 @@ class TestSuite extends FunSuite {
   }
   
   test("Forest") {
-    val orf = new ORF.ClsForest(param,par=true)
+    val orf = ORF.ClsForest(param,par=true)
     trainInds foreach { i => orf.update(X(i),y(i)) }
     println("Test Accuracy: " + orf.predAcc(xtest,ytest))
   }
