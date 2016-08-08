@@ -119,6 +119,7 @@ object Template {
     protected def updateOOBE(x: Vector[Double], y: Double): Unit
     protected def newElem: Elem
     protected def reset: Unit
+    def oobe: Double
 
     // Public methods
     def age = _age

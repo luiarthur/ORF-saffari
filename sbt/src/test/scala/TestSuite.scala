@@ -39,13 +39,13 @@ class TestSuite extends FunSuite {
   val ytest = testInds.map(y(_)).toVector
 
   test("Template") {
-    val ort = ORF.ClassificationTree(param)
+    val ort = ORF.ClsTree(param)
     inds foreach { i => ort.update(X(i),y(i)) }
     ort.tree.draw
   }
   
   test("Forest") {
-    val orf = List.fill(100)(ORF.ClassificationTree(param)).par
+    val orf = List.fill(100)(ORF.ClsTree(param)).par
 
     trainInds foreach { i => orf.foreach(tree => tree.update(X(i),y(i))) }
 
