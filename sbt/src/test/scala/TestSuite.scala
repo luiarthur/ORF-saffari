@@ -2,9 +2,7 @@ import org.scalatest.FunSuite
 
 class TestSuite extends FunSuite {
   def round(x: Double, d: Int = 2) = (scala.math.pow(10,d) * x).toInt / scala.math.pow(10,d)
-  import ORF.Tools.dataRange
   import Timer.time
-  import ORF.Template._
 
   test("Drawing / testing trees") {
     import ORF.Tree
@@ -27,6 +25,7 @@ class TestSuite extends FunSuite {
     assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4)
   }
 
+  import ORF.Tools._
   val iris = scala.util.Random.shuffle(
     scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector)
   val n = iris.size
@@ -40,15 +39,13 @@ class TestSuite extends FunSuite {
   val ytest = testInds.map(y(_)).toVector
 
   test("Template") {
-    import ORF.Classification.Classify
-    val ort = Classify(param)
+    val ort = ORF.ClassificationTree(param)
     inds foreach { i => ort.update(X(i),y(i)) }
     ort.tree.draw
   }
   
   test("Forest") {
-    import ORF.Classification.Classify
-    val orf = List.fill(100)(Classify(param)).par
+    val orf = List.fill(100)(ORF.ClassificationTree(param)).par
 
     trainInds foreach { i => orf.foreach(tree => tree.update(X(i),y(i))) }
 

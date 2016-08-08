@@ -1,4 +1,28 @@
 //package ORF
+///** ORF.Classification: Online Random Forest - Classification version */
+//object Regression {
+//  import ORF.Template._
+//  private val Rand = new scala.util.Random
+//
+//
+//  /** ORTree: Online Random Tree
+//   *  @constructor Initialize with parameter (param, see Param), and range of X (xrng)
+//   *  @param param parameter settings for online random tree. see class Param.
+//   *  @param xrng range for each column of X matrix. ( you can use Tools.dataRange(X) to get xrng )
+//   */
+//  //object Regress { def apply(param: Param) = new Classify(new ClsElem(-1,0,0,param),param) }
+//  //class Regress(override val elem: RegElem, param: Param) extends ORTree (elem,param){ 
+//    //def newElem: RegElem = new ClsElem(-1,0,0,param)
+//    //def updateOOBE(x: Vector[Double], y: Double) = {
+//    //  val pred = predict(x).toInt
+//    //  _oobe._2(y.toInt) += 1
+//    //  if (pred == y.toInt) _oobe._1(y.toInt) += 1
+//    //}
+//    //private val _oobe = (Array.fill(param.numClasses)(0), Array.fill(param.numClasses)(0))
+//    //def reset: Unit = {}
+//  //}
+//}
+//package ORF
 ///** ORF.Regression: Online Random Forest - Regression version */
 //object Regression {
 //  import ORF.Tree
