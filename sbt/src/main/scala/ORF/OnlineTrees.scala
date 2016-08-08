@@ -9,7 +9,6 @@ package ORF {
    */
   object ClassificationTree { def apply(param: Param) = new ClassificationTree(new ClsElem(-1,0,0,param),param) }
   class  ClassificationTree (override val elem: ClsElem, param: Param) extends ORTree (elem,param) { 
-
     // private field
     private var _oobe = (Array.fill(param.numClasses)(0), Array.fill(param.numClasses)(0))
 
@@ -25,6 +24,29 @@ package ORF {
       _oobe._2(y.toInt) += 1
       if (pred == y.toInt) _oobe._1(y.toInt) += 1
     }
-
   }
+
+  /** Classification on-line random tree
+   *  @constructor Initialize with parameter (param, see Param).
+   *  @param param parameter settings for online random tree. see class Param.
+   */
+  object RegTree { def apply(param: Param) = new RegTree(new RegElem(-1,0,0,param),param) }
+  class  RegTree (override val elem: RegElem, param: Param) extends ORTree (elem,param) { 
+    // private field
+    private var _oobe = ???
+
+    // protected methods
+    protected def reset: Unit = {
+      _age = 0
+      _tree = Tree( newElem )
+      //_oobe = ???
+      ???
+    }
+    protected def newElem: RegElem = new RegElem(-1,0,0,param)
+    protected def updateOOBE(x: Vector[Double], y: Double) = {
+      val pred = predict(x).toInt
+      ???
+    }
+  }
+
 }
