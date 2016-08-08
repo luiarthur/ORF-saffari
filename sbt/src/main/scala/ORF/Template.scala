@@ -1,7 +1,7 @@
 package ORF 
 
 object Template {
-  val Rand = scala.util.Random
+  private val Rand = scala.util.Random
   private def runif(rng: (Double,Double)) = Rand.nextDouble * (rng._2-rng._1) + rng._1
   import ORF.Tools.Param
 
@@ -118,7 +118,7 @@ object Template {
     // Protected to implement in subclass of ORTree. Protected methods are seen only by subclasses.
     protected def updateOOBE(x: Vector[Double], y: Double): Unit
     protected def newElem: Elem
-    protected def reset: Unit
+    def reset: Unit
     def oobe: Double
 
     // Public methods
@@ -191,4 +191,89 @@ object Template {
     }
 
   }
+
+  /** ORForest: Online Random Forest for Classification.
+   *  @constructor creates online random forest object
+   *  @param param parameter settings for random forest
+   *  @param xrng range for each column of X matrix. ( you can use Tools.dataRange(X) to get xrng )
+   *  @param numTrees number of trees in forest
+   *  @param par if true, trees in forest are updated in parallel. Otherwise, trees in forest are updated sequentially.
+   */
+  abstract case class ORForest(param: Param, numTrees: Int = 100, par: Boolean = false) {
+    private val Rand = scala.util.Random
+
+    // Methods to define
+    def newORTree: ORTree
+
+    // Other methods & fields
+    private val xrng = param.xrng
+    protected val _forest = {
+      val f = Vector.range(1,numTrees) map { i => 
+        val tree = newORTree //ORTree(param,xrng)
+        tree
+      }
+      if (par) f.par else f
+    }
+    def forest = _forest
+
+    /** predict / classify based on input x */
+    def predict(x: Vector[Double]) = {
+      val preds = forest.map(tree => tree.predict(x)) 
+      preds.sum / preds.size
+    }
+
+    /** update the random forest based on new observations x, y */
+    def update(x: Vector[Double], y: Double): Unit = {
+      _forest.foreach( _.update(x,y) )
+      if (param.gamma > 0) { // Algorithm 2: Temporal Knowledge Weighting
+        val oldTrees = forest.filter( t => t.age > 1 / param.gamma)
+        if (oldTrees.size > 0) {
+          val t = oldTrees( Rand.nextInt(oldTrees.size) )
+          if (t.oobe > Rand.nextDouble) t.reset
+        }
+      }
+    }
+
+    /** Returns prediction accuracy based on test input (xs) and test response (ys): Regression */
+    def rmse(xs: Vector[Vector[Double]], ys: Vector[Double]) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+      val mse = xs.zip(ys).map{ z => 
+        val pred = predict(z._1)
+        (pred-z._2) * (pred-z._2)
+      }.sum / xs.size
+      scala.math.sqrt(mse)
+    }
+
+    /** Returns prediction accuracy based on test input (xs) and test response (ys): Classification */
+    def predAcc(xs: Vector[Vector[Double]], ys: Vector[Double]) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+      val preds = xs map { predict(_) }
+      val bools = {preds zip ys} map {z => if (z._1 == z._2) 1.0 else 0.0}
+      bools.sum / bools.size
+    }
+
+    // mean Tree Stats
+    def meanTreeSize = forest.map{_.tree.size}.sum / forest.size.toDouble
+    def meanNumLeaves = forest.map{_.tree.numLeaves}.sum / forest.size.toDouble
+    def meanMaxDepth = forest.map{_.tree.maxDepth}.sum / forest.size.toDouble
+
+    // sd Tree Stats
+    def sdTreeSize = sd(forest.map{_.tree.size}.toVector)
+    def sdNumLeaves = sd(forest.map{_.tree.numLeaves}.toVector)
+    def sdMaxDepth = sd(forest.map{_.tree.maxDepth}.toVector)
+
+    /** Computes standard deviation of vector xs */
+    private def sd(xs: Vector[Int]) = {
+      val n = xs.size.toDouble
+      val mean = xs.sum / n
+      scala.math.sqrt( xs.map(x => (x-mean) * (x-mean) ).sum / (n-1) )
+    }
+
+    /** Leave one out Cross Validation. Probably not practical in streaming set-up. But useful for testing*/
+    def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = {
+      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+      ???
+    }
+  }
+
 }

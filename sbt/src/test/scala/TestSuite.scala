@@ -45,18 +45,9 @@ class TestSuite extends FunSuite {
   }
   
   test("Forest") {
-    val orf = List.fill(100)(ORF.ClsTree(param)).par
-
-    trainInds foreach { i => orf.foreach(tree => tree.update(X(i),y(i))) }
-
-    val preds = xtest map { xt => 
-      val preds = orf.map( tree => tree.predict(xt) ) 
-      val predList = preds.groupBy(identity).toList
-      predList.maxBy(_._2.size)._1
-    }
-
-    val bools = {preds zip ytest} map {z => if (z._1 == z._2) 1.0 else 0.0}
-    println("Test Accuracy: " + bools.sum / bools.size)
+    val orf = new ORF.ClsForest(param,par=true)
+    trainInds foreach { i => orf.update(X(i),y(i)) }
+    println("Test Accuracy: " + orf.predAcc(xtest,ytest))
   }
 
 
