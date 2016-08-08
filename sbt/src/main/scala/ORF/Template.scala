@@ -3,7 +3,7 @@ package ORF
 object Template {
   private val Rand = scala.util.Random
   private def runif(rng: (Double,Double)) = Rand.nextDouble * (rng._2-rng._1) + rng._1
-  import ORF.Tools.Param
+  import ORF.models._
 
   // Sufficient Statistics
   trait SuffStats {
@@ -33,8 +33,8 @@ object Template {
       _n += 1
     }
     def reset = { _sum=0; _ss=0; _n=0 }
-    def pred = sum / n.toDouble // FIXME
-    def sd = scala.math.sqrt( (ss - pred*pred) / n.toDouble )
+    def pred = sum / n.toDouble
+    def sd = scala.math.sqrt( (ss/n.toDouble - pred*pred) )
   }
 
   // Decision Tests
@@ -48,8 +48,8 @@ object Template {
     val statsR = ClsSuffStats(Array.fill(numClasses)(1), 0)
   }
   class RegTest(dim: Int, loc: Double) extends Test(dim,loc) { // no side effects
-    val statsL = RegSuffStats(0,0,0)
-    val statsR = RegSuffStats(0,0,0)
+    val statsL = RegSuffStats(0,0,1)
+    val statsR = RegSuffStats(0,0,1)
   }
 
 
@@ -59,11 +59,10 @@ object Template {
     def updateSplit(dim: Int, loc: Double) = { _splitDim=dim; _splitLoc=loc }
     def split = (_splitDim, _splitLoc)
     def reset: Unit 
-
     def stats: SuffStats
     def stats_=(newStats: Any): Unit
-    def tests = _tests
 
+    def tests = _tests
     def update(x: Vector[Double], y: Double) = { 
       stats.update(y)
       tests foreach { _.update(x,y) }
@@ -103,7 +102,7 @@ object Template {
       _tests = Vector()
     }
 
-    private var _stats = RegSuffStats(0,0,0)
+    private var _stats = RegSuffStats(0,0,1)
     protected def generateTest = {
       val dim = Rand.nextInt(dimX)
       val loc = runif(param.xrng(dim))
@@ -205,7 +204,11 @@ object Template {
     // Methods to define
     def newORTree: ORTree
 
+    /** predict / classify based on input x */
+    def predict(x: Vector[Double]): Double
+
     // Other methods & fields
+    def predicts(xs: Vector[Vector[Double]]) = xs map predict 
     private val xrng = param.xrng
     protected val _forest = {
       val f = Vector.range(1,numTrees) map { i => 
@@ -215,12 +218,6 @@ object Template {
       if (par) f.par else f
     }
     def forest = _forest
-
-    /** predict / classify based on input x */
-    def predict(x: Vector[Double]) = {
-      val preds = forest.map(tree => tree.predict(x)) 
-      preds.sum / preds.size
-    }
 
     /** update the random forest based on new observations x, y */
     def update(x: Vector[Double], y: Double): Unit = {
@@ -234,24 +231,6 @@ object Template {
       }
     }
 
-    /** Returns prediction accuracy based on test input (xs) and test response (ys): Regression */
-    def rmse(xs: Vector[Vector[Double]], ys: Vector[Double]) = {
-      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
-      val mse = xs.zip(ys).map{ z => 
-        val pred = predict(z._1)
-        (pred-z._2) * (pred-z._2)
-      }.sum / xs.size
-      scala.math.sqrt(mse)
-    }
-
-    /** Returns prediction accuracy based on test input (xs) and test response (ys): Classification */
-    def predAcc(xs: Vector[Vector[Double]], ys: Vector[Double]) = {
-      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
-      val preds = xs map { predict(_) }
-      val bools = {preds zip ys} map {z => if (z._1 == z._2) 1.0 else 0.0}
-      bools.sum / bools.size
-    }
-
     // mean Tree Stats
     def meanTreeSize = forest.map{_.tree.size}.sum / forest.size.toDouble
     def meanNumLeaves = forest.map{_.tree.numLeaves}.sum / forest.size.toDouble
@@ -263,17 +242,10 @@ object Template {
     def sdMaxDepth = sd(forest.map{_.tree.maxDepth}.toVector)
 
     /** Computes standard deviation of vector xs */
-    private def sd(xs: Vector[Int]) = {
+    protected def sd(xs: Vector[Int]) = {
       val n = xs.size.toDouble
       val mean = xs.sum / n
       scala.math.sqrt( xs.map(x => (x-mean) * (x-mean) ).sum / (n-1) )
     }
-
-    /** Leave one out Cross Validation. Probably not practical in streaming set-up. But useful for testing*/
-    def leaveOneOutCV(xs: Vector[Vector[Double]], ys: Vector[Int], par: Boolean = false) = {
-      assert(xs.size == ys.size, "Error: xs and ys need to have same length")
-      ???
-    }
   }
-
 }

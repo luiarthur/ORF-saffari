@@ -1,7 +1,8 @@
 //object Confirmation {
-//  import ORF.Classification._
-//  import ORF.Tools.dataRange
+//  import ORF._
+//  import ORF.Tools._
 //  import scala.util.Random.shuffle
+//}
 //
 //  // futures
 //  import scala.concurrent._

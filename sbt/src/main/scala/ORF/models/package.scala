@@ -1,6 +1,5 @@
 package ORF
-
-object Tools {
+package object models {
 
   /** returns the range of the data*/
   def dataRange(X: Vector[Vector[Double]]) = 
@@ -33,6 +32,6 @@ object Tools {
    *  @param numTests  the number of tests (split dimension, location) each node does. (default=10)
    *  @param xrng
    */
-  case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int, numTests: Int = 10, gamma: Double = 0)
+  case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int = 0, numTests: Int = 10, gamma: Double = 0)
 
 }

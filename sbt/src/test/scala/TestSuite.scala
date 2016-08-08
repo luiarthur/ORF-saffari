@@ -25,122 +25,46 @@ class TestSuite extends FunSuite {
     assert(t.maxDepth == 1 && t2.maxDepth == 2 && t3.maxDepth == 4)
   }
 
-  import ORF.Tools._
+  //import ORF.Tools._
   val iris = scala.util.Random.shuffle(
     scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector)
   val n = iris.size
   val k = iris(0).size - 1
   val y = iris.map( yi => yi(k) - 1)
   val X = iris.map(x => x.take(k))
-  val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(X), numClasses=y.toSet.size)
   val inds = (0 to n-1)
   val (testInds, trainInds) = inds.partition( _ % 5 == 0)
   val xtest = testInds.map(X(_)).toVector
   val ytest = testInds.map(y(_)).toVector
 
   test("Template") {
-    val ort = ORF.ClsTree(param)
+    import ORF.models._
+    val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(X), numClasses=y.toSet.size)
+    val ort = ClsTree(param)
     inds foreach { i => ort.update(X(i),y(i)) }
     ort.tree.draw
   }
   
   test("Forest") {
-    val orf = ORF.ClsForest(param,par=true)
-    trainInds foreach { i => orf.update(X(i),y(i)) }
-    println("Test Accuracy: " + orf.predAcc(xtest,ytest))
+    import ORF.models._
+    val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(X), numClasses=y.toSet.size)
+    val orf = ClsForest(param,par=true)
+    //trainInds foreach { i => orf.update(X(i),y(i)) }
+    //println("Test Accuracy: " + orf.predAcc(xtest,ytest))
+    val conf = orf.leaveOneOutCV(X,y,par=true)
+    orf.printConfusion(conf)
   }
 
 
-  //test("ORF Regression") {
-  //  import ORF.Regression._
-  //  val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
-  //  val n = iris.size
-  //  val k = iris(0).size - 1
-  //  val y = iris.map( yi => {yi(k) - 1} + scala.util.Random.nextDouble / 10 )
-  //  val X = iris.map(x => x.take(k))
-  //  val param = Param(minSamples = 5, minGain = .2)
-
-  //  val orf = ORForest(param,dataRange(X))
-  //  for (i <- 0 until n) orf.update(X(i),y(i))
-  //  println("RMSE:" +  orf.rmse(X,y) )
-  //  val preds = Vector.range(0,n).map(i => orf.predict(X(i)))
-  //  Vector.range(0,n).foreach( i => println(y(i), preds(i)) )
-  //}
-
-
-  //if (false) test("ORT") {
-  //  import ORF.Classification._
-  //  val iris = scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector
-  //  val n = iris.size
-  //  val k = iris(0).size - 1
-  //  val y = iris.map( yi => {yi(k) - 1}.toInt )
-  //  val X = iris.map(x => x.take(k))
-  //  val param = Param(numClasses = y.toSet.size, minSamples = 5, 
-  //    minGain = .1, numTests = 10, gamma = 0)
-
-  //  val orf = ORForest(param,dataRange(X))
-  //  //assert(orf.forest(0) != orf.forest(1))
-
-  //  val inds = scala.util.Random.shuffle(0 to n-1) // important that order is shuffled
-
-  //  val (testInds, trainInds) = inds.partition( _ % 5 == 0)
-  //  trainInds.foreach{ i => orf.update(X(i),y(i).toInt) }
-  //  orf.forest(0).tree.draw
-  //  orf.forest(1).tree.draw
-  //  val xtest = testInds.map(X(_)).toVector
-  //  val ytest = testInds.map(y(_)).toVector
-  //  val conf = orf.confusion(xtest,ytest)
-  //  print(Console.YELLOW)
-  //  orf.printConfusion(conf)
-  //  println(orf.predAccuracy(xtest,ytest) + Console.RESET)
-  //  println("tree size:       " + round(orf.meanTreeSize)  + " +/- " + round(orf.sdTreeSize))
-  //  println("tree max depth:  " + round(orf.meanMaxDepth)  + " +/- " + round(orf.sdMaxDepth))
-  //  println("tree num leaves: " + round(orf.meanNumLeaves) + " +/- " + round(orf.sdNumLeaves))
-
-  //  //orf.forest.foreach( tree => println(tree.oobe) )
-
-  //  println
-  //  Timer.time {
-  //    val conflooPar= orf.leaveOneOutCV(X,y,par=true)
-  //    println("Parallel Leave One Out CV") // faster!!!
-  //    orf.printConfusion(conflooPar) }
-  //  print(Console.RESET)
-  //}
-
-  //if (false) test("Online Read") {
-  //  import ORF.Classification._
-  //  val uspsTrain = scala.util.Random.shuffle(
-  //    scala.io.Source.fromFile("src/test/resources/usps/train.csv").
-  //    getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector)
-  //  val uspsTest = scala.io.Source.fromFile("src/test/resources/usps/test.csv").
-  //    getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
-
-  //  val n = uspsTrain.size
-  //  val k = uspsTrain(0).size - 1
-  //  val y = uspsTrain.map( _.head.toInt )
-  //  val X = uspsTrain.map( _.tail )
-  //  println("Dim: " + X.size + "," + X(0).size)
-  //  val param = Param(lam = 1, numClasses = y.toSet.size, 
-  //                    minSamples = n/10, minGain = .1, 
-  //                    numTests = 10, gamma = 0, metric="entropy")
-  //  val inds = Vector.range(0,n)
-  //  val orf = ORForest(param,dataRange(X),numTrees=100,par=true)
-  //  val indsten = Vector.range(0,10).flatMap( i => scala.util.Random.shuffle(inds))
-  //  Timer.time {indsten.foreach{ i => 
-  //    orf.update(X(i),y(i).toInt) 
-  //    print("\r"+orf.meanTreeSize.toInt+"              ")
-  //  }}
-  //  //orf.forest.foreach( f => f.tree.draw )
-
-  //  println("mean tree size: " + orf.meanTreeSize)
-  //  println("mean tree Depth: " + orf.meanMaxDepth)
-  //  println("c: " + orf.forest(0).tree.elem.c.mkString(","))
-
-  //  val xtest = uspsTest.map(x => x.tail)
-  //  val ytest = uspsTest.map(yi => yi(0).toInt)
-  //  val conf = orf.confusion(xtest,ytest)
-  //  print(Console.YELLOW)
-  //  orf.printConfusion(conf)
-  //  println(orf.predAccuracy(xtest,ytest) + Console.RESET)
-  //}
+  test("ORF Regression") {
+    import ORF.models._
+    val randErr = inds map { i => (scala.util.Random.nextDouble - .5)/10 }
+    val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(X))
+    val orf = RegForest(param,par=true)
+    //trainInds foreach { i => orf.update(X(i), y(i) + randErr(i))}
+    //println(orf.predicts(xtest))
+    val preds = orf.leaveOneOutPred(X,y,par=true)
+    val looRMSE = orf.leaveOneOutRMSE(X,y,par=true)
+    println("Leave One Out RMSE: " + looRMSE)
+  }
 }
