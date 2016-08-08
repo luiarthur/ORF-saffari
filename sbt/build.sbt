@@ -1,6 +1,6 @@
 name := "orf"
 
-version := "v0.2"
+version := "v0.21" // concise version using templates for classification and regression
 
 scalaVersion := "2.10.6"
 
