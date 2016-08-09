@@ -32,9 +32,10 @@ object Template {
       _ss += y*y
       _n += 1
     }
+    private val eps = 1E-10
     def reset = { _sum=0; _ss=0; _n=0 }
-    def pred = sum / n.toDouble
-    def sd = scala.math.sqrt( (ss/n.toDouble - pred*pred) )
+    def pred = sum / (n+eps)
+    def sd = scala.math.sqrt( (ss/(n+eps)- pred*pred) )
   }
 
   // Decision Tests
@@ -48,8 +49,8 @@ object Template {
     val statsR = ClsSuffStats(Array.fill(numClasses)(1), 0)
   }
   class RegTest(dim: Int, loc: Double) extends Test(dim,loc) { // no side effects
-    val statsL = RegSuffStats(0,0,1)
-    val statsR = RegSuffStats(0,0,1)
+    val statsL = RegSuffStats(0,0,0)
+    val statsR = RegSuffStats(0,0,0)
   }
 
 
@@ -212,7 +213,7 @@ object Template {
     private val xrng = param.xrng
     protected val _forest = {
       val f = Vector.range(1,numTrees) map { i => 
-        val tree = newORTree //ORTree(param,xrng)
+        val tree = newORTree
         tree
       }
       if (par) f.par else f
