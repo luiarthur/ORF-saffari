@@ -29,10 +29,13 @@ class ClsForest (param: Param, numTrees: Int = 100, par: Boolean = false) extend
 
   def confusion(xs: Vector[Vector[Double]], ys: Vector[Double]) = {
     assert(xs.size == ys.size, "Error: xs and ys need to have same length")
+    val sortedY = ys.toSet.toVector.sorted
+    val z = (sortedY zipWithIndex).toMap
+
     val numClasses = param.numClasses
     val preds = xs.map(x => predict(x))
     val conf = Array.fill(numClasses)( Array.fill(numClasses)(0) )
-    for ( (y,pred) <- ys zip preds) conf(y.toInt)(pred.toInt) += 1
+    for ( (y,pred) <- ys zip preds) conf(z(y))(z(pred)) += 1
     conf
   }
 
