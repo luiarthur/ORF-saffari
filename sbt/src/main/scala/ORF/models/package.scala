@@ -5,7 +5,7 @@ package object models {
   def dataRange(X: Vector[Vector[Double]]) = 
     Vector.range(0,X(0).size) map {j => 
       val colj = X map {x => x(j)}
-      (colj.max, colj.min)
+      (colj.min, colj.max)
     }
 
   /** returns the unique class labels. assumes if there are n classes, the labels are {0,1,...,n-1}. */
@@ -18,7 +18,7 @@ package object models {
     val k = X(0).size
     Vector.range(0,n) map { i =>
       Vector.range(0,k) map { j => 
-        ( X(i)(j) - rng(j)._2 ) / ( rng(j)._1 - rng(j)._2)
+        ( X(i)(j) - rng(j)._1 ) / ( rng(j)._2 - rng(j)._1)
       }
     }
   }
