@@ -29,9 +29,8 @@ class TestSuite extends FunSuite {
   val iris = scala.util.Random.shuffle(
     scala.io.Source.fromFile("src/test/resources/iris.csv").getLines.map(x=>x.split(",").toVector.map(_.toDouble)).toVector)
   val n = iris.size
-  val k = iris(0).size - 1
-  val y = iris.map( yi => yi(k) - 1)
-  val X = iris.map(x => x.take(k))
+  val y = iris.map( yi => yi.last - 1)
+  val X = iris.map(x => x.dropRight(1))
   val inds = (0 to n-1)
   val (testInds, trainInds) = inds.partition( _ % 5 == 0)
   val xtest = testInds.map(X(_)).toVector
