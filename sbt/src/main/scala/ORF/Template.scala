@@ -157,7 +157,7 @@ object Template {
     private val dimX = param.xrng.size
 
     // Private methods
-    private def loss(suff: Any): Double = suff match {
+    private def loss[S <: SuffStats](suff: S): Double = suff match {
       case s: ClsSuffStats => {
         val n = s.counts.sum.toDouble + param.numClasses
         (s.counts map { x => val p = x / n; -p * scala.math.log(p) }).sum
