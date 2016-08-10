@@ -63,6 +63,7 @@ class TestSuite extends FunSuite {
     //trainInds foreach { i => orf.update(X(i), y(i) + randErr(i))}
     //println(orf.predicts(xtest))
     val preds = orf.leaveOneOutPred(X,y,par=true)
+    (preds zip y) foreach { z =>  println(round(z._1) +", " + z._2) }
     val looRMSE = orf.leaveOneOutRMSE(X,y,par=true)
     println("Leave One Out RMSE: " + looRMSE)
   }
