@@ -66,4 +66,29 @@ class TestSuite extends FunSuite {
     val looRMSE = orf.leaveOneOutRMSE(X,y,par=true)
     println("Leave One Out RMSE: " + looRMSE)
   }
+
+  test("ORF Classification USPS") {
+    import ORF.models._
+
+    val uspsTrain = scala.io.Source.fromFile("src/test/resources/usps/train.csv").
+      getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
+    val uspsTest = scala.io.Source.fromFile("src/test/resources/usps/test.csv").
+      getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
+
+    val xrng = dataRange( uspsTrain map { _.tail } )
+    val param = Param(minSamples = uspsTrain.size/100, minGain = .01, xrng = xrng, numClasses=10)
+    val orf = ClsForest(param,par=true)
+
+    uspsTrain foreach { o => orf.update(o.tail, o.head) }
+
+    val xtest = uspsTest map { _.tail }
+    val ytest = uspsTest map { _.head }
+    val conf = orf.confusion( xtest, ytest )
+
+    println
+    orf.printConfusion(conf)
+    println("USPS Prediction Accuracy: " + orf.predAcc(xtest,ytest))
+    println("mean treesize: " + orf.meanTreeSize)
+    println("mean max depth: " + orf.meanMaxDepth)
+  }
 }
