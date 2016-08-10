@@ -62,19 +62,18 @@ object Template {
     def reset: Unit 
     def stats: SuffStats
     def stats_=(newStats: Any): Unit
+    def numSamplesSeen = _numSamplesSeen
 
     def tests = _tests
     def update(x: Vector[Double], y: Double) = { 
       stats.update(y)
       tests foreach { _.update(x,y) }
+      _numSamplesSeen += 1
     }
     def pred = stats.pred
     override def toString = if (_splitDim == -1) pred.toString else "X" + (_splitDim+1) + " < " + (_splitLoc * 100).round / 100.0
 
-    // protected methods
     protected def generateTest: Test
-
-    // protected fields
     protected var _tests = Vector.range(0,param.numTests) map {t => generateTest}
   }
 
@@ -132,7 +131,8 @@ object Template {
           _age += 1
           val j = findLeaf(x,_tree)
           j.elem.update(x,y)
-          if (j.elem.stats.n > param.minSamples) {
+          if (j.elem.numSamplesSeen > param.minSamples) { //FIXME: which one is the correct approach?
+          //if (j.elem.stats.n > param.minSamples) {
             val g = gains(j.elem)
             if ( g.exists(_ > param.minGain) ) {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
@@ -174,6 +174,7 @@ object Template {
         val sR = test.statsR
         val nR = sR.n + param.numClasses
         val n = (nL + nR).toDouble
+        assert(n > 0)
         val g = loss(s) - (nL/n) * loss(sL) - (nR/n) * loss(sR)
         if (g < 0) 0 else g
       }
