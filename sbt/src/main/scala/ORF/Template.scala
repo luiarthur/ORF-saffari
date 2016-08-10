@@ -35,7 +35,7 @@ object Template {
     private val eps = 1E-10
     def reset = { _sum=0; _ss=0; _n=0 }
     def pred = sum / (n+eps)
-    def sd = scala.math.sqrt( (ss/(n+eps)- pred*pred) )
+    def sd = scala.math.sqrt( (ss/(n+eps) - pred*pred) )
   }
 
   // Decision Tests
