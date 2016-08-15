@@ -160,7 +160,7 @@ object Template {
     private def loss[S <: SuffStats](suff: S): Double = suff match {
       case s: ClsSuffStats => {
         def log2(x: Double) = scala.math.log(x) / scala.math.log(2)
-        val n = s.counts.sum.toDouble + param.numClasses
+        val n = s.counts.sum.toDouble// + param.numClasses
         (s.counts map { x => val p = x / n; -p * log2(p) }).sum
       }
       case r: RegSuffStats => r.sd
@@ -171,10 +171,10 @@ object Template {
       val s = elem.stats
       tests map { test =>
         val sL = test.statsL
-        val nL = sL.n + param.numClasses
+        val nL = sL.n //+ param.numClasses
         val sR = test.statsR
-        val nR = sR.n + param.numClasses
-        val n = (nL + nR).toDouble
+        val nR = sR.n //+ param.numClasses
+        val n = (nL + nR + 1E-10).toDouble
         assert(n > 0)
         val g = loss(s) - (nL/n) * loss(sL) - (nR/n) * loss(sR)
         if (g < 0) 0 else g
