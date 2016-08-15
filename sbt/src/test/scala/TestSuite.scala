@@ -75,15 +75,18 @@ class TestSuite extends FunSuite {
       getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
     val uspsTest = scala.io.Source.fromFile("src/test/resources/usps/test.csv").
       getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
-
-    val xrng = dataRange( (uspsTrain map { _.tail }) ++ (uspsTest map { _.tail }) )
-    val param = Param(minSamples = uspsTrain.size/100, minGain = .1, xrng = xrng, numClasses=10) // 87% Accuracy
-    val orf = ClsForest(param,par=true)
-
-    for (i <- 1 to 10) uspsTrain foreach { o => orf.update(o.tail, o.head) }
-
     val xtest = uspsTest map { _.tail }
     val ytest = uspsTest map { _.head }
+
+    val xrng = dataRange( (uspsTrain map { _.tail }) ++ (uspsTest map { _.tail }) )
+    val param = Param(minSamples = uspsTrain.size/10, minGain = .1, xrng = xrng, numClasses=10) // 87% Accuracy
+    val orf = ClsForest(param,par=true)
+
+    for (i <- 1 to 10) {
+      scala.util.Random.shuffle(uspsTrain) foreach { o => orf.update(o.tail, o.head) }
+      println("i: " + i + Console.GREEN + " | Error: " + { 1-orf.predAcc(xtest,ytest) } + Console.RESET)
+    }
+
     val conf = orf.confusion( xtest, ytest )
 
     println
