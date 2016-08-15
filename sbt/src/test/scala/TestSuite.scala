@@ -77,10 +77,10 @@ class TestSuite extends FunSuite {
       getLines.map(x=>x.split(" ").toVector.map(_.toDouble)).toVector
 
     val xrng = dataRange( uspsTrain map { _.tail } )
-    val param = Param(minSamples = uspsTrain.size/100, minGain = .01, xrng = xrng, numClasses=10) // 87% Accuracy
+    val param = Param(minSamples = uspsTrain.size/100, minGain = .1, xrng = xrng, numClasses=10) // 87% Accuracy
     val orf = ClsForest(param,par=true)
 
-    uspsTrain foreach { o => orf.update(o.tail, o.head) }
+    for (i <- 1 to 10) uspsTrain foreach { o => orf.update(o.tail, o.head) }
 
     val xtest = uspsTest map { _.tail }
     val ytest = uspsTest map { _.head }
