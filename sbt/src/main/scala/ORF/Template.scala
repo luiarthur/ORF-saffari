@@ -45,8 +45,8 @@ object Template {
     def update(x: Vector[Double], y: Double) = if (x(dim) < loc) statsL.update(y) else statsR.update(y)
   }
   class ClsTest(dim: Int, loc: Double, numClasses: Int) extends Test (dim,loc) { // No side effects
-    val statsL = ClsSuffStats(Array.fill(numClasses)(1), 0)
-    val statsR = ClsSuffStats(Array.fill(numClasses)(1), 0)
+    val statsL = ClsSuffStats(Array.fill(numClasses)(0), 0)
+    val statsR = ClsSuffStats(Array.fill(numClasses)(0), 0)
   }
   class RegTest(dim: Int, loc: Double) extends Test(dim,loc) { // no side effects
     val statsL = RegSuffStats(0,0,0)
@@ -86,7 +86,7 @@ object Template {
     }
     def dens = stats.counts.map { c => c / (stats.n.toDouble + param.numClasses) }
 
-    private var _stats = ClsSuffStats(Array.fill(param.numClasses)(1),0)
+    private var _stats = ClsSuffStats(Array.fill(param.numClasses)(0),0)
     protected def generateTest = {
       val dim = Rand.nextInt(dimX)
       val loc = runif(param.xrng(dim))
@@ -160,8 +160,8 @@ object Template {
     private def loss[S <: SuffStats](suff: S): Double = suff match {
       case s: ClsSuffStats => {
         def log2(x: Double) = scala.math.log(x) / scala.math.log(2)
-        val n = s.counts.sum.toDouble// + param.numClasses
-        (s.counts map { x => val p = x / n; -p * log2(p) }).sum
+        val n = s.n.toDouble //s.counts.sum.toDouble// + param.numClasses
+        (s.counts map { x => val p = x / n; -p * log2(p+1E-10) }).sum
       }
       case r: RegSuffStats => r.sd
       case _ => 0.0
