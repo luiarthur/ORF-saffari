@@ -23,6 +23,15 @@ package object models {
     }
   }
 
+  /** times the execution of a block and returns what the block returns*/
+  def timer[R](block: => R): R = {  
+    val t0 = System.nanoTime()
+    val result = block
+    val t1 = System.nanoTime()
+    println("\nElapsed time: " + (t1 - t0) / 1E9 + "s\n")
+    result
+  }
+
   /** Parameters for the OR-Tree, OR-Foest
    *  @constructor create a set of parameters for ORT / ORF
    *  @param numClasses  number of classes in response. e.g. if numClasses == 3, then the responses should be one of {0,1,2}. For regression, set to 0.
