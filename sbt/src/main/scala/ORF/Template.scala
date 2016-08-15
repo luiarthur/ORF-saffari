@@ -171,12 +171,13 @@ object Template {
       val s = elem.stats
       tests map { test =>
         val sL = test.statsL
-        val nL = sL.n //+ param.numClasses
+        val nL = sL.n
         val sR = test.statsR
-        val nR = sR.n //+ param.numClasses
+        val nR = sR.n
         val n = (nL + nR + 1E-10).toDouble
-        assert(n > 0)
-        val g = loss(s) - (nL/n) * loss(sL) - (nR/n) * loss(sR)
+        val lossL = { if (nL==0) 0 else loss(sL) }
+        val lossR = { if (nR==0) 0 else loss(sR) }
+        val g = loss(s) - (nL/n) * lossL - (nR/n) * lossR
         if (g < 0) 0 else g
       }
     }
