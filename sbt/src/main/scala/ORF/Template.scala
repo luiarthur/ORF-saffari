@@ -159,8 +159,9 @@ object Template {
     // Private methods
     private def loss[S <: SuffStats](suff: S): Double = suff match {
       case s: ClsSuffStats => {
+        def log2(x: Double) = scala.math.log(x) / scala.math.log(2)
         val n = s.counts.sum.toDouble + param.numClasses
-        (s.counts map { x => val p = x / n; -p * scala.math.log(p) }).sum
+        (s.counts map { x => val p = x / n; -p * log2(p) }).sum
       }
       case r: RegSuffStats => r.sd
       case _ => 0.0
