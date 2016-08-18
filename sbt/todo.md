@@ -4,6 +4,7 @@
 - Implement Regress.scala
 - Need the implementation to be clean
 - run Brian Gallager's python on RZ.
+- add max depth option? isPure?
 
 - Make tree always be binary. def updateChildren(l,r)
 - make classify.scala functions private?
