@@ -4,6 +4,9 @@ Note that by executing `sbt doc`, the scaladoc will be generated in `target/scal
 starting a web server by typing in the terminal `python -m SimpleHTTPServer`. You can then view the page in a browser by typing
 `localhost:8000`. Refer to the docs for more info on the methods of the RegForest and ClsForest objects.
 
+
+## Regression Example
+
 ```scala
 /** Regression Example */
 import ORF.models._ // this is how you import the ORF library. You usually won't need to import anything else
@@ -39,8 +42,11 @@ val preds = orf.predicts(xtest)
 val rmse = orf.rmse(preds,ytest)
 ```
 
+***
+
+## Classification Example
+
 ```scala
-/** Regression Example */
 import ORF.models._
 val Rand = new scala.util.Random(123)
 def g(x: Vector[Double]) = if ( x(0)*x(0) + x(1)*x(1) < .5 ) 1.0 else 0.0
