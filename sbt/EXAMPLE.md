@@ -8,7 +8,6 @@ starting a web server by typing in the terminal `python -m SimpleHTTPServer`. Yo
 ## Regression Example
 
 ```scala
-/** Regression Example */
 import ORF.models._ // this is how you import the ORF library. You usually won't need to import anything else
 val Rand = new scala.util.Random(123) // create a random number generator with a random seed of 123
 
