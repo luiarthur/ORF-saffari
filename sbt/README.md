@@ -32,7 +32,7 @@ val ytest = xtest map f
   minGain: the minimum reduction of node impurity before node is split
   xrng: range of training inputs
 */
-val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(xtrain))
+val param = Param(minSamples = 10, minGain = .01, xrng = dataRange(xtrain))
 
 // creating online Regress Forest object. Using 10 Trees, and the parameters given above.
 val orf = RegForest(param,numTrees=10,par=true) // setting parallel option to be true. trees in forest will be trained in parallel.
@@ -75,5 +75,6 @@ timer { // times how long the updates take
 val preds = orf.predicts(xtest)
 val conf = orf.confusion(xtest,ytest) // create a confusion matrix
 orf.printConfusion(conf) // print confusion matrix
-orf.forest(0).tree.draw
+orf.forest.last.tree.draw // draw the last tree in the forest
+orf.forest(5).tree.draw // draw the 6th tree in the forest
 ```
