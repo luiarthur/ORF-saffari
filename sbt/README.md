@@ -4,6 +4,10 @@ Note that by executing `sbt doc`, the scaladoc will be generated in `target/scal
 starting a web server by typing in the terminal `python -m SimpleHTTPServer`. You can then view the page in a browser by typing
 `localhost:8000`. Refer to the docs for more info on the methods of the RegForest and ClsForest objects.
 
+## Getting Started
+
+Follow the instructions [here](https://github.com/luiarthur/ORF-saffari#readme) to compile the jar. Then
+start scala session by: `scala -cp orf_2.10-versionNumber.jar`.
 
 ## Regression Example
 
@@ -12,7 +16,7 @@ import ORF.models._ // this is how you import the ORF library. You usually won't
 val Rand = new scala.util.Random(123) // create a random number generator with a random seed of 123
 
 // create a weird non-linear function that takes a vector as input and returns a scalar
-def f(x: Vector[Double]) = if (x(0) < x(1)) x(0)*math.sqrt(x(1)) else math.sqrt(x(1))*x(2)
+def f(x: Vector[Double]) = if (x(0) < x(1)) x(0) * math.sqrt(x(1)) else math.sqrt(x(1)) * x(0)
 
 // create training set
 val ntrain = 1000
@@ -28,7 +32,7 @@ val ytest = xtest map f
   minGain: the minimum reduction of node impurity before node is split
   xrng: range of training inputs
 */
-val param = Param(minSamples = 10, minGain = .01, xrng = dataRange(xtrain))
+val param = Param(minSamples = 5, minGain = .1, xrng = dataRange(xtrain))
 
 // creating online Regress Forest object. Using 10 Trees, and the parameters given above.
 val orf = RegForest(param,numTrees=10,par=true) // setting parallel option to be true. trees in forest will be trained in parallel.
@@ -39,6 +43,7 @@ timer { // times how long the updates take
 // post processing
 val preds = orf.predicts(xtest)
 val rmse = orf.rmse(preds,ytest)
+orf.forest(0).tree.draw // draws the 1st tree in the forest
 ```
 
 ***
@@ -60,7 +65,7 @@ val xtest = Vector.fill(ntest)( Vector.fill(2)(Rand.nextDouble) )
 val ytest = xtest map g
 
 // same as before, but now we need to specify the number of classes is 2.
-val param = Param(minSamples = 10, minGain = .01, xrng = dataRange(xtrain), numClasses = 2)
+val param = Param(minSamples = 10, minGain = .1, xrng = dataRange(xtrain), numClasses = 2)
 val orf = ClsForest(param,numTrees=10,par=true) // setting parallel option to be true. trees in forest will be trained in parallel.
 timer { // times how long the updates take
   for (i <- 0 until ntrain) orf.update(xtrain(i),ytrain(i)) // essentially: orf.update( newx: Vector[Double], newy: Double )
@@ -70,4 +75,5 @@ timer { // times how long the updates take
 val preds = orf.predicts(xtest)
 val conf = orf.confusion(xtest,ytest) // create a confusion matrix
 orf.printConfusion(conf) // print confusion matrix
+orf.forest(0).tree.draw
 ```
