@@ -1,3 +1,3 @@
-# To do later
+# To do
 
 - add max depth option? isPure?
