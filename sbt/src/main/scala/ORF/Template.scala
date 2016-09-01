@@ -215,7 +215,7 @@ object Template {
     def predicts(xs: Vector[Vector[Double]]) = xs map predict 
     private val xrng = param.xrng
     protected val _forest = {
-      val f = Vector.range(1,numTrees) map { i => 
+      val f = Vector.range(0,numTrees) map { i => 
         val tree = newORTree
         tree
       }
