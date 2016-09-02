@@ -5,10 +5,10 @@ from joblib import Parallel, delayed #pip install --index-url=http://pypi.python
 import multiprocessing
 
 def confusion(preds,ys):
-    n = np.unique(ys).size
-    conf = np.zeros([n,n])
-    for r in np.transpose(np.vstack([preds,ys])):
-        conf[r[1],r[0]] += 1
+    n = len(set(ys))
+    conf = [[0] * n for i in range(n)]
+    for r in zip(preds,ys):
+        conf[int(r[0])][int(r[1])] += 1
     #
     return conf
 
