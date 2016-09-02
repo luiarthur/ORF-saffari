@@ -10,7 +10,7 @@ X = iris[:,0:4]
 y = np.array(iris[:,4],dtype=int)
 param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 5, 'minGain': .1, 'numTest': 3, 'gamma': 0}
 
-irisORF = orf.ORF(param,orf.getRange(X))
+irisORF = orf.ORF(param,orf.getRange(X),ncore=1)
 for row in iris:
     xx = row[0:4]
     yy = row[4]

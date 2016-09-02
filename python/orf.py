@@ -1,6 +1,9 @@
 import numpy as np
 import random
 
+from joblib import Parallel, delayed #pip install --index-url=http://pypi.python.org/simple/ --trusted-host pypi.python.org joblib
+import multiprocessing
+
 def confusion(preds,ys):
     n = np.unique(ys).size
     conf = np.zeros([n,n])
@@ -19,15 +22,23 @@ def getRange(X, pad=.1):
     return rng
 
 class ORF:
-    def __init__(self, param, rng, numTrees=100):
+    def __init__(self, param, rng, numTrees=100, ncore=1):
+        assert ncore >= 1, "ncore = number of cores must be >= 1"
         self.numTrees = numTrees
         self.param = param
         self.rng = rng
+        self.ncore = ncore
         self.trees = [ ORT(param,rng) for i in range(numTrees) ]
     #
     def update(self,x,y): 
-        for i in range(self.numTrees):
+        def updt(i):
             self.trees[i].update(x,y)
+        #
+        if (self.ncore > 1):
+            tmp = Parallel(n_jobs=self.ncore)(delayed(updt)(i) for i in range(self.numTrees))
+        else:
+            for i in range(self.numTrees):
+                updt(i)
         #
         if self.param['gamma'] > 0:
             print "Need to implement this: Algorithm 2 - Temporal Knowledge Weighting"
@@ -155,7 +166,11 @@ class ORT: # Online Random Tree
         return out
 
 ### TEST:
-#iris = np.genfromtxt('../scala/src/test/resources/iris.csv', delimiter=',')
+#import orf
+#import numpy as np
+#import random
+#
+#iris = np.genfromtxt('../sbt/src/test/resources/iris.csv', delimiter=',')
 #iris[:,4] -= 1
 #np.random.shuffle(iris)
 #X = iris[:,0:4]
