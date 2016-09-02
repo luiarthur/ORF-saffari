@@ -6,9 +6,9 @@ import multiprocessing
 
 def confusion(preds,ys):
     n = len(set(ys))
-    conf = [[0] * n for i in range(n)]
-    for r in zip(preds,ys):
-        conf[int(r[0])][int(r[1])] += 1
+    conf = np.zeros( (n,n) )
+    for r in zip(preds.astype(int),ys):
+        conf[r[0],r[1]] += 1
     #
     return conf
 
@@ -31,14 +31,9 @@ class ORF:
         self.trees = [ ORT(param,rng) for i in range(numTrees) ]
     #
     def update(self,x,y): 
-        def updt(i):
-            self.trees[i].update(x,y)
-        #
-        if (self.ncore > 1):
-            tmp = Parallel(n_jobs=self.ncore)(delayed(updt)(i) for i in range(self.numTrees))
-        else:
-            for i in range(self.numTrees):
-                updt(i)
+        # The update of the trees should be parallelizable # FIXME
+        for tree in self.trees:
+            tree.update(x,y)
         #
         if self.param['gamma'] > 0:
             print "Need to implement this: Algorithm 2 - Temporal Knowledge Weighting"

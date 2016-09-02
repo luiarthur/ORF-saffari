@@ -1,6 +1,7 @@
 import orf
 import numpy as np
 import random
+import sys
 
 # Iris:
 iris = np.genfromtxt('../sbt/src/test/resources/iris.csv', delimiter=',')
@@ -29,12 +30,13 @@ uspsTest = np.genfromtxt('../sbt/src/test/resources/usps/test.csv', delimiter=' 
 y = np.array(uspsTrain[:,0],dtype=int)
 X = uspsTrain[:,1:]
 (n,k) = X.shape
-param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 700, 'minGain': .01, 'numTest': 10, 'gamma': 0}
+param = {'numClass': np.unique(y).size, 'lam': 1, 'minSamples': 700, 'minGain': .1, 'numTest': 10, 'gamma': 0}
 
 uspsORF = orf.ORF(param,orf.getRange(X))
 i = 0
 for row in uspsTrain:
-    print i
+    print "\r%s / %s" % (i,n),
+    sys.stdout.flush()
     i += 1
     uspsORF.update(row[1:],row[0])
 
