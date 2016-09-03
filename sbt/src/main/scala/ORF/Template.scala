@@ -174,7 +174,7 @@ object Template {
         val nL = sL.n
         val sR = test.statsR
         val nR = sR.n
-        val n = (nL + nR + 1E-10).toDouble
+        val n = nL + nR + 1E-10
         val lossL = { if (nL==0) 0 else loss(sL) }
         val lossR = { if (nR==0) 0 else loss(sR) }
         val g = loss(s) - (nL/n) * lossL - (nR/n) * lossR
