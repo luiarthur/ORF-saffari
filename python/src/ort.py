@@ -23,6 +23,7 @@ class ORT:
         self.gamma = param['gamma'] if param.has_key('gamma') else 0
         self.numTests = param['numTests'] if param.has_key('numTests') else 10
         self.numClasses = param['numClasses'] if param.has_key('numClasses') else 0
+        self.maxDepth = param['maxDepth'] if param.has_key("maxDepth") else 30 # This needs to be implemented to restrain the maxDepth of the tree.
         self.tree = Tree( Elem(param=param) )
 
     def draw(self):
@@ -45,7 +46,7 @@ class ORT:
                         j.updateChildren( Tree(Elem(self.param)), Tree(Elem(self.param)) )
                         j.left.elem.stats = bestTest.statsL
                         j.right.elem.stats = bestTest.statsR
-                        j.elem.reset
+                        j.elem.reset()
 
     def predict(self,x):
         return self.__findLeaf(x,self.tree).elem.pred()
@@ -154,8 +155,8 @@ class Elem: #HERE
         self.stats = SuffStats(self.numClasses)
         self.tests = [ self.generateTest() for i in xrange(self.numTests) ]
 
-    def reset():
-        self.stats.reset()
+    def reset(self):
+        self.stats = None #self.stats.reset()
         self.tests = None
 
     def generateTest(self):
@@ -176,7 +177,8 @@ class Elem: #HERE
             test.update(x,y)
 
     def updateSplit(self,dim,loc):
-        self.dim, self.loc = dim, loc
+        print "updating split"
+        self.splitDim, self.splitLoc = dim, loc
 
     def split(self):
         return (self.dim,self.loc)

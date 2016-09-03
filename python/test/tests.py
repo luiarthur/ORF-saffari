@@ -44,10 +44,15 @@ class Tests(unittest.TestCase):
         n = 1000
         X = np.random.randn(n,2)
         y = [ f(X[i,:]) for i in xrange(n) ]
-        param = {'minSamples': 5, 'minGain': .1, 'numClasses': 2, 'xrng': dataRange(X)}
+        param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 5}
         ort = ORT(param)
         map(lambda i: ort.update(X[i,:],y[i]), range(n))
-        print ort.draw()
+        ort.draw()
+        preds = map(lambda i: ort.predict(X[i,:]), range(n))
+        acc = map(lambda z: z[0]==z[1] , zip(preds,y))
+        print "Accuracy: " + str(sum(acc) / (n+1E-10))
+        print "max depth: " + str(ort.tree.maxDepth())
+        #print "Root counts: " + str(vars(ort.tree.elem.stats))
 
 if __name__=='__main__':
     unittest.main()
