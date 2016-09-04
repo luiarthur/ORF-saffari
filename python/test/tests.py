@@ -3,8 +3,13 @@
 import unittest, sys
 import numpy as np
 sys.path.append("../src")
+import math
+
+def mean(x):
+    return sum(x) / (len(x)*1.0)
 
 from ort import ORT, dataRange
+from orf import ORF
 from bcolors import bcolors as bc
 
 print bc.HEADER + "Starting Test..." + bc.ENDC
@@ -38,7 +43,7 @@ class Tests(unittest.TestCase):
     def test4(self,msg=warn("Error in tree.maxDepth")):
         self.assertTrue(t1.maxDepth() == 1 and t2.maxDepth()==2 and t4.maxDepth()==4,msg)
 
-    def test5(self,msg=warn("test ORT")):
+    def test5(self,msg=warn("test ORT Classify")):
         def f(x):
             return 1 if x[0]*x[0] + x[1]*x[1] < .5*.5 else 0
         n = 1000
@@ -47,12 +52,75 @@ class Tests(unittest.TestCase):
         param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 5}
         ort = ORT(param)
         map(lambda i: ort.update(X[i,:],y[i]), range(n))
-        ort.draw()
+        #ort.draw()
         preds = map(lambda i: ort.predict(X[i,:]), range(n))
         acc = map(lambda z: z[0]==z[1] , zip(preds,y))
-        print "Accuracy: " + str(sum(acc) / (n+1E-10))
+        print "ORT Classify:"
+        print "Accuracy: " + str(mean(acc))
         print "max depth: " + str(ort.tree.maxDepth())
+        print
+
+    def test6(self,msg=warn("test ORT Regression")):
+        def f(x):
+            return math.sin(x[0]) if x[0]<x[1] else math.cos(x[1]+math.pi/2)
+        n = 1000
+        X = np.random.randn(n,2)
+        y = [ f(X[i,:]) for i in xrange(n) ]
+        param = {'minSamples': 10, 'minGain': .01, 'xrng': dataRange(X), 'maxDepth': 5}
+        ort = ORT(param)
+        for i in range(n):
+            ort.update(X[i,:],y[i])
+        #ort.draw()
+        preds = map(lambda i: ort.predict(X[i,:]), range(n))
+        mse = mean(map(lambda z: (z[0]-z[1])*(z[0]-z[1]) , zip(preds,y)))
+        print "ORT Regression:"
+        print "RMSE: " + str(math.sqrt(mse))
+        print "max depth: " + str(ort.tree.maxDepth())
+        print
         #print "Root counts: " + str(vars(ort.tree.elem.stats))
+
+    def test7(self,msg=warn("test ORF Classify")):
+        def f(x):
+            return 1 if x[0]*x[0] + x[1]*x[1] < .5*.5 else 0
+        n = 1000
+        X = np.random.randn(n,2)
+        y = [ f(X[i,:]) for i in xrange(n) ]
+        param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 5}
+        orf = ORF(param)
+        for i in range(n):
+            orf.update(X[i,:],y[i])
+
+        xtest = np.random.randn(n,2)
+        ytest = [ f(x) for x in xtest ]
+        preds = orf.predicts(xtest)
+
+        acc = map(lambda z: z[0]==z[1] , zip(preds,ytest))
+        print "ORF Classify:"
+        print "Accuracy: " + str(mean(acc))
+        print "Mean max depth: " + str(orf.meanMaxDepth())
+        print
+
+    def test8(self,msg=warn("test ORF Regression")):
+        def f(x):
+            return math.sin(x[0]) if x[0]<x[1] else math.cos(x[1]+math.pi/2)
+        n = 1000
+        X = np.random.randn(n,2)
+        y = [ f(x) for x in X ]
+        param = {'minSamples': 10, 'minGain': .01, 'xrng': dataRange(X), 'maxDepth': 5}
+        xtest = np.random.randn(n,2)
+        ytest = [f(x) for x in xtest]
+        orf = ORF(param)
+
+        for i in range(n):
+            orf.update(X[i,:],y[i])
+
+        preds = orf.predicts(xtest)
+
+        mse = mean( map(lambda z: (z[0]-z[1])*(z[0]-z[1]) , zip(preds,ytest)) )
+        print "ORF Regression:"
+        print "RMSE: " + str(math.sqrt(mse))
+        print "max depth: " + str(orf.meanMaxDepth())
+        print
 
 if __name__=='__main__':
     unittest.main()

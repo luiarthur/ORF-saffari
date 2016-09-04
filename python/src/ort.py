@@ -8,6 +8,15 @@ def argmax(x):
 def log2(x):
     return log(x) / log(2)
 
+def dataRange(X, pad=.1):
+    import numpy as np
+    k = len(X[0])
+    rng = np.zeros([k,2])
+    for j in range(k):
+        rng[j,0] = X[:,j].min() - pad
+        rng[j,1] = X[:,j].max() + pad
+    return rng
+
 class ORT:
     """
     Examples:
@@ -123,11 +132,12 @@ class SuffStats:
             return self.sum / (self.n+self.eps)
     
     def impurity(self):
+        n = self.n + self.eps
         if self.__classify:
-            n = self.n + self.eps
             return sum(map(lambda x: -x/n * log2(x/n + self.eps) ,self.counts)) # entropy
         else:
-            return sqrt( self.ss/(self.n+eps) - self.pred*self.pred ) # sd of node
+            prd = self.pred()
+            return sqrt( self.ss/n - prd*prd ) # sd of node
 
 class Test:
     def __init__(self,dim,loc,numClasses):
@@ -177,18 +187,7 @@ class Elem: #HERE
             test.update(x,y)
 
     def updateSplit(self,dim,loc):
-        print "updating split"
         self.splitDim, self.splitLoc = dim, loc
 
     def split(self):
         return (self.dim,self.loc)
-
-
-def dataRange(X, pad=.1):
-    import numpy as np
-    k = len(X[0])
-    rng = np.zeros([k,2])
-    for j in range(k):
-        rng[j,0] = X[:,j].min() - pad
-        rng[j,1] = X[:,j].max() + pad
-    return rng
