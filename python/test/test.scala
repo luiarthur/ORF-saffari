@@ -1,10 +1,17 @@
 import ORF.models._
 
+def sd (xs: Vector[Double]) = {
+  val n = xs.size
+  val mu = xs.sum / n
+  val mse = xs.map{x => (x-mu)*(x-mu)}.sum / (n-1)
+  math.sqrt(mse)
+}
+
 // Classify
-{
+timer {
   val n = 1000
   def f(x: Vector[Double]) = if (x(0)*x(0) + x(1)*x(1) < .5*.5) 1.0 else 0.0
-  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextDouble))
+  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val y = X map f
   val param = Param(minSamples=10, minGain= .01, numClasses=2, xrng=dataRange(X))
 
@@ -21,10 +28,10 @@ import ORF.models._
 }
 
 // Regression
-{
+timer {
   val n = 1000
   def f(x: Vector[Double]) = if (x(0)<x(1)) math.sin(x(0)) else math.cos(x(1)+math.Pi/2)
-  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextDouble))
+  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val y = X map f
   val param = Param(minSamples=10, minGain= .01, xrng=dataRange(X))
 
@@ -41,44 +48,51 @@ import ORF.models._
 }
 
 // ORF Classify
-{
+timer {
   val n = 1000
   def f(x: Vector[Double]) = if (x(0)*x(0) + x(1)*x(1) < .5*.5) 1.0 else 0.0
-  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextDouble))
+  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val y = X map f
+  val xtest = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
+  val ytest = xtest map f
+
   val param = Param(minSamples=10, minGain= .01, numClasses=2, xrng=dataRange(X))
 
-  val orf = ClsForest(param)
+  val orf = ClsForest(param,numTrees=20,par=true)
 
   for (i <- 0 until n) orf.update(X(i),y(i))
 
-  val pred = orf.predicts(X)
-  val acc = {(pred zip y) map {z => if (z._1 == z._2) 1.0 else 0.0}}.sum / n
+  val pred = orf.predicts(xtest)
+  val acc = {(pred zip ytest) map {z => if (z._1 == z._2) 1.0 else 0.0}}.sum / n
 
+  println(Console.GREEN + "ORF Classify" + Console.RESET)
   println("Mean max Depth: " + orf.meanMaxDepth)
   println("Accuracy: " + acc)
   println
 }
 
 // ORF Regression
-if (false) {
+timer {
   val n = 1000
   def f(x: Vector[Double]) = if (x(0)<x(1)) math.sin(x(0)) else math.cos(x(1)+math.Pi/2)
-  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextDouble))
+  val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val y = X map f
-  val xtest = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextDouble))
+  val xtest = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val ytest = xtest map f
 
   val param = Param(minSamples=10, minGain= .01, xrng=dataRange(X))
 
-  val orf = RegForest(param)
+  val orf = RegForest(param,numTrees=200,par=true)
 
   for (i <- 0 until n) orf.update(X(i),y(i))
 
-  val preds = orf.predicts(X)
+  val preds = orf.predicts(xtest)
   val rmse = orf.rmse(preds,ytest)
 
-  println("max Depth: " + orf.meanMaxDepth)
+  println(Console.GREEN + "ORF Regression" + Console.RESET)
+  val sdx = orf.predStat(Vector(0.0,0.0), sd)
+  println("f(0,0): mean: "+orf.predict(Vector(0.0,0.0))+ ", sd: " + sdx)
+  println("Mean max Depth: " + orf.meanMaxDepth)
   println("RMSE: " + rmse)
  
 }

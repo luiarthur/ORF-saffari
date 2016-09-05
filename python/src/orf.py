@@ -27,6 +27,9 @@ class ORF:
     def predicts(self,X):
         return [self.predict(x) for x in X]
 
+    def predStat(self,x,f):
+        return f([tree.predict(x) for tree in self.forest])
+
     def meanTreeSize(self):
         ts = [ort.tree.size() for ort in self.forest]
         return sum(ts) / (self.numTrees*1.0)

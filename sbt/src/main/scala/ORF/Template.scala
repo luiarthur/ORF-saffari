@@ -213,6 +213,19 @@ object Template {
 
     // Other methods & fields
     def predicts(xs: Vector[Vector[Double]]) = xs map predict 
+
+    /**
+     * takes as arguments an input x and function f and returns
+     * a statistic based on all 'numTrees' tree predictions.
+     * For example predStat(x,sd) returns the standard deviation
+     * of the predictions of the individual trees of the forest.
+     * (of course, sd is a function you need to write yourself...)
+     */
+    def predStat(x: Vector[Double], f: Vector[Double] => Double) = {
+      val preds = forest.map(tree => tree.predict(x)).toVector
+      f(preds)
+    }
+
     private val xrng = param.xrng
     protected val _forest = {
       val f = Vector.range(0,numTrees) map { i => 

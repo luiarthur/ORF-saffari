@@ -8,6 +8,13 @@ import math
 def mean(x):
     return sum(x) / (len(x)*1.0)
 
+def sd(xs):
+    n = len(xs) * 1.0
+    mu = mean(xs)
+    ss = map(lambda x: (x-mu)*(x-mu), xs)
+    mse = sum(ss) / (n-1)
+    return math.sqrt(mse)
+
 from ort import ORT, dataRange
 from orf import ORF
 from bcolors import bcolors as bc
@@ -85,8 +92,8 @@ class Tests(unittest.TestCase):
         n = 1000
         X = np.random.randn(n,2)
         y = [ f(X[i,:]) for i in xrange(n) ]
-        param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 5}
-        orf = ORF(param)
+        param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X)}
+        orf = ORF(param,numTrees=20)
         for i in range(n):
             orf.update(X[i,:],y[i])
 
@@ -96,8 +103,8 @@ class Tests(unittest.TestCase):
 
         acc = map(lambda z: z[0]==z[1] , zip(preds,ytest))
         print "ORF Classify:"
-        print "Accuracy: " + str(mean(acc))
         print "Mean max depth: " + str(orf.meanMaxDepth())
+        print "Accuracy: " + str(mean(acc))
         print
 
     def test8(self,msg=warn("test ORF Regression")):
@@ -106,10 +113,10 @@ class Tests(unittest.TestCase):
         n = 1000
         X = np.random.randn(n,2)
         y = [ f(x) for x in X ]
-        param = {'minSamples': 10, 'minGain': .01, 'xrng': dataRange(X), 'maxDepth': 5}
+        param = {'minSamples': 10, 'minGain': .01, 'xrng': dataRange(X)}
         xtest = np.random.randn(n,2)
         ytest = [f(x) for x in xtest]
-        orf = ORF(param)
+        orf = ORF(param,numTrees=200)
 
         for i in range(n):
             orf.update(X[i,:],y[i])
@@ -118,8 +125,9 @@ class Tests(unittest.TestCase):
 
         mse = mean( map(lambda z: (z[0]-z[1])*(z[0]-z[1]) , zip(preds,ytest)) )
         print "ORF Regression:"
-        print "RMSE: " + str(math.sqrt(mse))
+        print "f(0,0): mean: "+str(orf.predict([0,0]))+", sd: "+str(orf.predStat([0,0],sd))
         print "max depth: " + str(orf.meanMaxDepth())
+        print "RMSE: " + str(math.sqrt(mse))
         print
 
 if __name__=='__main__':
