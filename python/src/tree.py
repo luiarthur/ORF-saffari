@@ -28,7 +28,7 @@ class Tree:
         Note: Nodes in tree must have exactly 2 or 0 children
         =====================================================
         """
-        assert((left == None and right == None) or (left!=None and right!=None))
+        assert((left == None and right == None) or (left != None and right != None))
         self.elem = elem
         self.left = left
         self.right = right

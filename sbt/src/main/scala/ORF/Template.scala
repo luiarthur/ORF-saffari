@@ -35,7 +35,7 @@ object Template {
     private val eps = 1E-10
     def reset = { _sum=0; _ss=0; _n=0 }
     def pred = sum / (n+eps)
-    def sd = scala.math.sqrt( (ss/(n+eps) - pred*pred) )
+    def sd = scala.math.sqrt( ss/(n+eps) - pred*pred )
   }
 
   // Decision Tests
@@ -102,7 +102,7 @@ object Template {
       _tests = Vector()
     }
 
-    private var _stats = RegSuffStats(0,0,1)
+    private var _stats = RegSuffStats(0,0,0)
     protected def generateTest = {
       val dim = Rand.nextInt(dimX)
       val loc = runif(param.xrng(dim))
@@ -131,10 +131,10 @@ object Template {
           _age += 1
           val (j,depth) = findLeaf(x,_tree)
           j.elem.update(x,y)
-          if (j.elem.numSamplesSeen > param.minSamples && depth < param.maxDepth) { //FIXME: which one is the correct approach?
-          //if (j.elem.stats.n > param.minSamples) {
+          //if (j.elem.numSamplesSeen > param.minSamples && depth < param.maxDepth) { //FIXME: which one is the correct approach?
+          if (j.elem.stats.n > param.minSamples && depth < param.maxDepth) {
             val g = gains(j.elem)
-            if ( g.exists(_ > param.minGain) ) {
+            if ( g.exists(_ >= param.minGain) ) {
               val bestTest = g.zip(j.elem.tests).maxBy(_._1)._2
               // create Left, Right children
               j.elem.updateSplit(bestTest.dim, bestTest.loc)

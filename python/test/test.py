@@ -86,7 +86,7 @@ class Tests(unittest.TestCase):
         X = np.random.randn(n,2)
         y = map(f,X)
         param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X)}
-        orf = ORF(param,numTrees=20)
+        orf = ORF(param,numTrees=500)
         for i in range(n):
             orf.update(X[i,:],y[i])
 
@@ -97,6 +97,8 @@ class Tests(unittest.TestCase):
         acc = map(lambda z: z[0]==z[1] , zip(preds,ytest))
         print "ORF Classify:"
         print "Mean max depth: " + str(orf.meanMaxDepth())
+        print "Mean Size: " + str(orf.meanTreeSize())
+        print "SD Size: " + str(orf.sdTreeSize())
         print "Accuracy: " + str(mean(acc))
         print
 
@@ -109,7 +111,7 @@ class Tests(unittest.TestCase):
         param = {'minSamples': 10, 'minGain': 0, 'xrng': dataRange(X), 'maxDepth': 10}
         xtest = np.random.randn(n,2)
         ytest = map(f,xtest)
-        orf = ORF(param,numTrees=1000,ncores=1)
+        orf = ORF(param,numTrees=500)
 
         for i in range(n):
             orf.update(X[i,:],y[i])
@@ -118,12 +120,12 @@ class Tests(unittest.TestCase):
 
         mse = mean( map(lambda z: (z[0]-z[1])*(z[0]-z[1]) , zip(preds,ytest)) )
         print "ORF Regression:"
-        print "f(0,0): mean: "+str(orf.predict([0,0]))+", sd: "+str(orf.predStat([0,0],sd))
-        print "Mean size: " + str(orf.meanTreeSize())
-        print "SD size: " + str(orf.sdTreeSize())
-        print "Mean max depth: " + str(orf.meanMaxDepth())
-        print "SD max depth: " + str(orf.sdMaxDepth())
-        print "RMSE: " + str(math.sqrt(mse))
+        print "f(0,0):          " + str(orf.predict([0,0])) + " +/- " + str(orf.predStat([0,0],sd))
+        print "Mean size:       " + str(orf.meanTreeSize())
+        print "SD size:         " + str(orf.sdTreeSize())
+        print "Mean max depth:  " + str(orf.meanMaxDepth())
+        print "SD max depth:    " + str(orf.sdMaxDepth())
+        print "RMSE:            " + str(math.sqrt(mse))
         print
 
 if __name__=='__main__':

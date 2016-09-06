@@ -8,14 +8,13 @@ class ORF:
         self.numTrees = numTrees
         self.forest = [ORT(param) for i in xrange(numTrees)]
         self.ncores = ncores
-        if ncores > 1:
-            self.pool = Pool(ncores)
 
     def update(self,x,y): # implement parallel updates for each tree in forest here FIXME
         if self.ncores > 1:
+            # parallel updates
             pass
         else:
-            # sequential loop
+            # sequential updates
             for tree in self.forest:
                 tree.update(x,y)
 
@@ -36,27 +35,27 @@ class ORF:
         return f([tree.predict(x) for tree in self.forest])
 
     def meanTreeSize(self):
-        ts = [ort.tree.size() for ort in self.forest]
-        return sum(ts) / (self.numTrees*1.0)
+        return mean(map(lambda ort: ort.tree.size(), self.forest))
 
     def meanNumLeaves(self):
-        nl = [ort.tree.numLeaves() for ort in self.forest]
-        return sum(nl) / (self.numTrees*1.0)
+        return mean(map(lambda ort: ort.tree.numLeaves(), self.forest))
 
     def meanMaxDepth(self):
-        md = [ort.tree.maxDepth() for ort in self.forest]
-        return sum(md) / (self.numTrees*1.0)
+        return mean(map(lambda ort: ort.tree.maxDepth(), self.forest))
 
     def sdTreeSize(self):
-        return(sd([ort.tree.size() for ort in self.forest]))
+        return sd([ort.tree.size() for ort in self.forest])
 
     def sdNumLEaves(self):
-        return(sd([ort.tree.numLeaves() for ort in self.forest]))
+        return sd([ort.tree.numLeaves() for ort in self.forest])
 
     def sdMaxDepth(self):
-        return(sd([ort.tree.maxDepth() for ort in self.forest]))
+        return sd([ort.tree.maxDepth() for ort in self.forest])
 
 # Other functions:
+def mean(xs):
+    return sum(xs) / (len(xs)*1.0)
+
 def sd(xs): 
     n = len(xs) *1.0
     mu = sum(xs) / n

@@ -8,7 +8,7 @@ def argmax(x):
 def log2(x):
     return log(x) / log(2)
 
-def dataRange(X, pad=.1):
+def dataRange(X, pad=0):
     import numpy as np
     k = len(X[0])
     rng = np.zeros([k,2])
@@ -47,8 +47,9 @@ class ORT:
                 self.__age += 1
                 (j,depth) = self.__findLeaf(x,self.tree)
                 j.elem.update(x,y)
-                if j.elem.numSamplesSeen > self.minSamples and depth < self.maxDepth:
-                    g = self.__gains(j.elem) # HERE
+                #if j.elem.numSamplesSeen > self.minSamples and depth < self.maxDepth: # FIXME: which is the correct approach?
+                if j.elem.stats.n > self.minSamples and depth < self.maxDepth:
+                    g = self.__gains(j.elem)
                     if any([ gg >= self.minGain for gg in g ]):
                         bestTest = j.elem.tests[argmax(g)]
                         j.elem.updateSplit(bestTest.dim,bestTest.loc)
@@ -62,7 +63,6 @@ class ORT:
 
     def __gains(self,elem):
         tests = elem.tests
-        out = [0] * self.numTests
         def gain(test):
             statsL, statsR = test.statsL,test.statsR
             nL,nR = statsL.n,statsR.n
@@ -71,21 +71,20 @@ class ORT:
             lossR = 0 if nR==0 else statsR.impurity()
             g = elem.stats.impurity() - (nL/n) * lossL - (nR/n)  * lossR
             return 0 if g < 0 else g
-        return [gain(test) for test in tests]
+        return map(gain, tests)
 
     def __findLeaf(self, x, tree, depth=0):
         if tree.isLeaf(): 
             return (tree,depth)
         else:
-            dim = tree.elem.splitDim
-            loc = tree.elem.splitLoc
+            (dim,loc) = tree.elem.split()
             if x[dim] < loc:
                 return self.__findLeaf(x,tree.left,depth+1)
             else:
                 return self.__findLeaf(x,tree.right,depth+1)
 
     def __poisson(self,lam=1): # fix lamda = 1
-      l = exp(-1)
+      l = exp(-lam)
       def loop(k,p):
           return loop(k+1, p * random.random()) if (p > l) else k - 1
       return loop(0,1)
@@ -118,7 +117,7 @@ class SuffStats:
     def reset(self):
         self.n = None
         self.eps = None
-        self.__classift = None
+        self.__classify = None
         if self.__classify:
             self.counts = None
         else:
@@ -134,7 +133,7 @@ class SuffStats:
     def impurity(self):
         n = self.n + self.eps
         if self.__classify:
-            return sum(map(lambda x: -x/n * log2(x/n + self.eps) ,self.counts)) # entropy
+            return sum(map(lambda x: -x/n * log2(x/n + self.eps), self.counts)) # entropy
         else:
             prd = self.pred()
             return sqrt( self.ss/n - prd*prd ) # sd of node
@@ -163,7 +162,7 @@ class Elem: #HERE
         self.splitLoc = splitLoc
         self.numSamplesSeen = numSamplesSeen
         self.stats = SuffStats(self.numClasses)
-        self.tests = [ self.generateTest() for i in xrange(self.numTests) ]
+        self.tests = [ self.generateTest() for i in range(self.numTests) ]
 
     def reset(self):
         self.stats = None #self.stats.reset()
@@ -172,7 +171,7 @@ class Elem: #HERE
     def generateTest(self):
         dim = random.randrange(self.xdim)
         loc = random.uniform(self.xrng[dim,0],self.xrng[dim,1]) # xrng is a numpy matrix
-        return Test(dim,loc,self.numClasses)
+        return Test(dim, loc, self.numClasses)
 
     def toString(self):
         return str(self.pred()) if self.splitDim == -1 else "X" + str(self.splitDim+1) + " < " + str(round(self.splitLoc,2))
@@ -190,4 +189,4 @@ class Elem: #HERE
         self.splitDim, self.splitLoc = dim, loc
 
     def split(self):
-        return (self.dim,self.loc)
+        return (self.splitDim,self.splitLoc)
