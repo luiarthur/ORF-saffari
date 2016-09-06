@@ -59,9 +59,9 @@ preds = orf.predicts(xtest)
 predAcc = sum(map(lambda z: int(z[0] == z[1]), zip(preds,ytest))) / float(len(preds))
 conf = orf.confusion(xtest,ytest)
 orf.printConfusion(conf)
-#y\pred   0      1
-#0       578     52
-#1       1      369
+# y\pred   0      1
+# 0       578     52
+# 1       1      369
 print "Accuracy: " + str(round(predAcc * 100,2)) + "%"
 # Accuracy: 94.7%
 ```
