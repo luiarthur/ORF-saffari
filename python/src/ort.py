@@ -32,7 +32,7 @@ class ORT:
         self.gamma = param['gamma'] if param.has_key('gamma') else 0
         self.numTests = param['numTests'] if param.has_key('numTests') else 10
         self.numClasses = param['numClasses'] if param.has_key('numClasses') else 0
-        self.maxDepth = param['maxDepth'] if param.has_key("maxDepth") else 30 # This needs to be implemented to restrain the maxDepth of the tree.
+        self.maxDepth = param['maxDepth'] if param.has_key("maxDepth") else 30 # This needs to be implemented to restrain the maxDepth of the tree. FIXME
         self.tree = Tree( Elem(param=param) )
 
     def draw(self):
@@ -45,11 +45,11 @@ class ORT:
         else:
             for u in xrange(k):
                 self.__age += 1
-                j = self.__findLeaf(x,self.tree)
+                (j,depth) = self.__findLeaf(x,self.tree)
                 j.elem.update(x,y)
-                if j.elem.numSamplesSeen > self.minSamples:
+                if j.elem.numSamplesSeen > self.minSamples and depth < self.maxDepth:
                     g = self.__gains(j.elem) # HERE
-                    if any([ gg > self.minGain for gg in g ]):
+                    if any([ gg >= self.minGain for gg in g ]):
                         bestTest = j.elem.tests[argmax(g)]
                         j.elem.updateSplit(bestTest.dim,bestTest.loc)
                         j.updateChildren( Tree(Elem(self.param)), Tree(Elem(self.param)) )
@@ -58,7 +58,7 @@ class ORT:
                         j.elem.reset()
 
     def predict(self,x):
-        return self.__findLeaf(x,self.tree).elem.pred()
+        return self.__findLeaf(x,self.tree)[0].elem.pred() # [0] returns the node, [1] returns the depth
 
     def __gains(self,elem):
         tests = elem.tests
@@ -73,16 +73,16 @@ class ORT:
             return 0 if g < 0 else g
         return [gain(test) for test in tests]
 
-    def __findLeaf(self, x, tree):
+    def __findLeaf(self, x, tree, depth=0):
         if tree.isLeaf(): 
-            return tree
+            return (tree,depth)
         else:
             dim = tree.elem.splitDim
             loc = tree.elem.splitLoc
             if x[dim] < loc:
-                return self.__findLeaf(x,tree.left)
+                return self.__findLeaf(x,tree.left,depth+1)
             else:
-                return self.__findLeaf(x,tree.right)
+                return self.__findLeaf(x,tree.right,depth+1)
 
     def __poisson(self,lam=1): # fix lamda = 1
       l = exp(-1)

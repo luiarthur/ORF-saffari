@@ -1,3 +1,7 @@
+#!/bin/sh
+exec scala "$0" "$@"
+!#
+
 import ORF.models._
 
 def sd (xs: Vector[Double]) = {
@@ -24,8 +28,8 @@ timer {
 
   println("max Depth: " + ort.tree.maxDepth)
   println("Accuracy: " + acc)
-  println
 }
+println
 
 // Regression
 timer {
@@ -44,8 +48,8 @@ timer {
 
   println("max Depth: " + ort.tree.maxDepth)
   println("RMSE: " + math.sqrt(mse))
-  println
 }
+println
 
 // ORF Classify
 timer {
@@ -68,8 +72,8 @@ timer {
   println(Console.GREEN + "ORF Classify" + Console.RESET)
   println("Mean max Depth: " + orf.meanMaxDepth)
   println("Accuracy: " + acc)
-  println
 }
+println
 
 // ORF Regression
 timer {
@@ -80,9 +84,9 @@ timer {
   val xtest = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val ytest = xtest map f
 
-  val param = Param(minSamples=10, minGain= .01, xrng=dataRange(X))
+  val param = Param(minSamples=10, minGain= 0.0, xrng=dataRange(X), maxDepth=10)
 
-  val orf = RegForest(param,numTrees=200,par=true)
+  val orf = RegForest(param,numTrees=1000,par=true)
 
   for (i <- 0 until n) orf.update(X(i),y(i))
 
@@ -91,8 +95,10 @@ timer {
 
   println(Console.GREEN + "ORF Regression" + Console.RESET)
   val sdx = orf.predStat(Vector(0.0,0.0), sd)
-  println("f(0,0): mean: "+orf.predict(Vector(0.0,0.0))+ ", sd: " + sdx)
-  println("Mean max Depth: " + orf.meanMaxDepth)
-  println("RMSE: " + rmse)
- 
+  println("f(0,0): mean:    "+orf.predict(Vector(0.0,0.0))+ ", sd: " + sdx)
+  println("Mean Size:       "+orf.meanTreeSize)
+  println("SD Size:         "+orf.sdTreeSize)
+  println("Mean max Depth:  " + orf.meanMaxDepth)
+  println("SD max Depth:    " + orf.sdMaxDepth)
+  println("RMSE:            " + rmse)
 }

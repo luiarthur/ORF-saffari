@@ -28,7 +28,7 @@ package object models {
     val t0 = System.nanoTime()
     val result = block
     val t1 = System.nanoTime()
-    println("\nElapsed time: " + (t1 - t0) / 1E9 + "s\n")
+    println("Elapsed time: " + (t1 - t0) / 1E9 + "s")
     result
   }
 
@@ -40,7 +40,8 @@ package object models {
    *  @param gamma  the temporal weighting learning rate (>0). if age of tree > 1/gamma, the tree is thrown away. (default=0)
    *  @param numTests  the number of tests (split dimension, location) each node does. (default=10)
    *  @param xrng
+   *  @param maxDepth the maximum depth allowed for a tree. Defaults to 30.
    */
-  case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int = 0, numTests: Int = 10, gamma: Double = 0)
+  case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int = 0, numTests: Int = 10, gamma: Double = 0, maxDepth: Int = 30)
 
 }

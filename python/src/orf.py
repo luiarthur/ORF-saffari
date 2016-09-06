@@ -1,18 +1,23 @@
-import numpy as np
 from ort import ORT, dataRange, argmax
 from math import sqrt
 
 class ORF:
-    def __init__(self,param,numTrees=100,par=False): # implement parallel FIXME
+    def __init__(self,param,numTrees=100,ncores=0): # implement parallel at method update(self,x,y) FIXME
         self.param = param
         self.classify = param.has_key('numClasses') > 0
         self.numTrees = numTrees
-        self.par = par
         self.forest = [ORT(param) for i in xrange(numTrees)]
+        self.ncores = ncores
+        if ncores > 1:
+            self.pool = Pool(ncores)
 
-    def update(self,x,y):
-        for tree in self.forest:
-            tree.update(x,y)
+    def update(self,x,y): # implement parallel updates for each tree in forest here FIXME
+        if self.ncores > 1:
+            pass
+        else:
+            # sequential loop
+            for tree in self.forest:
+                tree.update(x,y)
 
     def predict(self,x):
         preds = [tree.predict(x) for tree in self.forest]
@@ -42,16 +47,17 @@ class ORF:
         md = [ort.tree.maxDepth() for ort in self.forest]
         return sum(md) / (self.numTrees*1.0)
 
-    def __sd(xs): 
-        n = len(xs) *1.0
-        mu = sum(xs) / n
-        return sqrt( sum(map(lambda x: (x-mu)*(x-mu),xs)) / n )
-
     def sdTreeSize(self):
-        return([ort.tree.size() for ort in self.forest])
+        return(sd([ort.tree.size() for ort in self.forest]))
 
     def sdNumLEaves(self):
-        return([ort.tree.numLeaves() for ort in self.forest])
+        return(sd([ort.tree.numLeaves() for ort in self.forest]))
 
     def sdMaxDepth(self):
-        return([ort.tree.maxDepth() for ort in self.forest])
+        return(sd([ort.tree.maxDepth() for ort in self.forest]))
+
+# Other functions:
+def sd(xs): 
+    n = len(xs) *1.0
+    mu = sum(xs) / n
+    return sqrt( sum(map(lambda x: (x-mu)*(x-mu),xs)) / (n-1) )

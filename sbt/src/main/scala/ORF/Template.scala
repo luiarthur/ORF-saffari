@@ -123,15 +123,15 @@ object Template {
     // Public methods
     def age = _age
     def tree = _tree
-    def predict(x: Vector[Double]) = findLeaf(x,tree).elem.pred
+    def predict(x: Vector[Double]) = findLeaf(x,tree)._1.elem.pred // findLeaf(x,tree)._1 => node; findLeaf(x,tree)._2 => depth
     def update(x: Vector[Double], y: Double) {
       val k = poisson(1)
       if (k > 0) {
         for (u <- 1 to k) {
           _age += 1
-          val j = findLeaf(x,_tree)
+          val (j,depth) = findLeaf(x,_tree)
           j.elem.update(x,y)
-          if (j.elem.numSamplesSeen > param.minSamples) { //FIXME: which one is the correct approach?
+          if (j.elem.numSamplesSeen > param.minSamples && depth < param.maxDepth) { //FIXME: which one is the correct approach?
           //if (j.elem.stats.n > param.minSamples) {
             val g = gains(j.elem)
             if ( g.exists(_ > param.minGain) ) {
@@ -181,10 +181,10 @@ object Template {
         if (g < 0) 0 else g
       }
     }
-    private def findLeaf(x: Vector[Double], tree: Tree[Elem]): Tree[Elem] = {
-      if (tree.isLeaf) tree else {
+    private def findLeaf(x: Vector[Double], tree: Tree[Elem], depth: Int = 0): (Tree[Elem],Int) = {
+      if (tree.isLeaf) (tree,depth) else {
         val (dim,loc) = tree.elem.split
-        if ( x(dim) > loc ) findLeaf(x, tree.right) else findLeaf(x, tree.left)
+        if ( x(dim) > loc ) findLeaf(x, tree.right, depth+1) else findLeaf(x, tree.left, depth+1)
       }
     }
     private def poisson(lam: Double) = {
@@ -249,9 +249,9 @@ object Template {
     }
 
     // mean Tree Stats
-    def meanTreeSize = forest.map{_.tree.size}.sum / forest.size.toDouble
-    def meanNumLeaves = forest.map{_.tree.numLeaves}.sum / forest.size.toDouble
-    def meanMaxDepth = forest.map{_.tree.maxDepth}.sum / forest.size.toDouble
+    def meanTreeSize = mean(forest.map{_.tree.size}.toVector)
+    def meanNumLeaves = mean(forest.map{_.tree.numLeaves}.toVector)
+    def meanMaxDepth = mean(forest.map{_.tree.maxDepth}.toVector)
 
     // sd Tree Stats
     def sdTreeSize = sd(forest.map{_.tree.size}.toVector)
@@ -259,10 +259,11 @@ object Template {
     def sdMaxDepth = sd(forest.map{_.tree.maxDepth}.toVector)
 
     /** Computes standard deviation of vector xs */
-    protected def sd(xs: Vector[Int]) = {
+    private def sd(xs: Vector[Int]) = {
       val n = xs.size.toDouble
-      val mean = xs.sum / n
-      scala.math.sqrt( xs.map(x => (x-mean) * (x-mean) ).sum / (n-1) )
+      val mu = mean(xs)
+      scala.math.sqrt( xs.map(x => (x-mu) * (x-mu) ).sum / (n-1) )
     }
+    private def mean(xs: Vector[Int]) = xs.sum / xs.size.toDouble
   }
 }

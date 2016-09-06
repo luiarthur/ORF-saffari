@@ -8,15 +8,8 @@ import math
 def mean(x):
     return sum(x) / (len(x)*1.0)
 
-def sd(xs):
-    n = len(xs) * 1.0
-    mu = mean(xs)
-    ss = map(lambda x: (x-mu)*(x-mu), xs)
-    mse = sum(ss) / (n-1)
-    return math.sqrt(mse)
-
 from ort import ORT, dataRange
-from orf import ORF
+from orf import ORF, sd
 from bcolors import bcolors as bc
 
 print bc.HEADER + "Starting Test..." + bc.ENDC
@@ -55,7 +48,7 @@ class Tests(unittest.TestCase):
             return 1 if x[0]*x[0] + x[1]*x[1] < .5*.5 else 0
         n = 1000
         X = np.random.randn(n,2)
-        y = [ f(X[i,:]) for i in xrange(n) ]
+        y = map(f,X)
         param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 5}
         ort = ORT(param)
         map(lambda i: ort.update(X[i,:],y[i]), range(n))
@@ -72,7 +65,7 @@ class Tests(unittest.TestCase):
             return math.sin(x[0]) if x[0]<x[1] else math.cos(x[1]+math.pi/2)
         n = 1000
         X = np.random.randn(n,2)
-        y = [ f(X[i,:]) for i in xrange(n) ]
+        y = map(f,X)
         param = {'minSamples': 10, 'minGain': .01, 'xrng': dataRange(X), 'maxDepth': 5}
         ort = ORT(param)
         for i in range(n):
@@ -91,14 +84,14 @@ class Tests(unittest.TestCase):
             return 1 if x[0]*x[0] + x[1]*x[1] < .5*.5 else 0
         n = 1000
         X = np.random.randn(n,2)
-        y = [ f(X[i,:]) for i in xrange(n) ]
+        y = map(f,X)
         param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X)}
         orf = ORF(param,numTrees=20)
         for i in range(n):
             orf.update(X[i,:],y[i])
 
         xtest = np.random.randn(n,2)
-        ytest = [ f(x) for x in xtest ]
+        ytest = map(f,xtest)
         preds = orf.predicts(xtest)
 
         acc = map(lambda z: z[0]==z[1] , zip(preds,ytest))
@@ -112,11 +105,11 @@ class Tests(unittest.TestCase):
             return math.sin(x[0]) if x[0]<x[1] else math.cos(x[1]+math.pi/2)
         n = 1000
         X = np.random.randn(n,2)
-        y = [ f(x) for x in X ]
-        param = {'minSamples': 10, 'minGain': .01, 'xrng': dataRange(X)}
+        y = map(f,X)
+        param = {'minSamples': 10, 'minGain': 0, 'xrng': dataRange(X), 'maxDepth': 10}
         xtest = np.random.randn(n,2)
-        ytest = [f(x) for x in xtest]
-        orf = ORF(param,numTrees=200)
+        ytest = map(f,xtest)
+        orf = ORF(param,numTrees=1000,ncores=1)
 
         for i in range(n):
             orf.update(X[i,:],y[i])
@@ -126,7 +119,10 @@ class Tests(unittest.TestCase):
         mse = mean( map(lambda z: (z[0]-z[1])*(z[0]-z[1]) , zip(preds,ytest)) )
         print "ORF Regression:"
         print "f(0,0): mean: "+str(orf.predict([0,0]))+", sd: "+str(orf.predStat([0,0],sd))
-        print "max depth: " + str(orf.meanMaxDepth())
+        print "Mean size: " + str(orf.meanTreeSize())
+        print "SD size: " + str(orf.sdTreeSize())
+        print "Mean max depth: " + str(orf.meanMaxDepth())
+        print "SD max depth: " + str(orf.sdMaxDepth())
         print "RMSE: " + str(math.sqrt(mse))
         print
 
