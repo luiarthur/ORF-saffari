@@ -50,7 +50,11 @@ preds = orf.predicts(xtest)
 predAcc = sum(map(lambda z: int(z[0] == z[1]), zip(preds,ytest))) / float(len(preds))
 conf = orf.confusion(xtest,ytest)
 orf.printConfusion(conf)
+#y\pred   0      1
+#0       603     10
+#1       26      361
 print "Accuracy: " + str(round(predAcc * 100,2)) + "%"
+# Accuracy: 97.0%
 ```
 
 ### Regression Example:
@@ -77,4 +81,5 @@ preds = orf.predicts(xtest)
 sse = sum( map(lambda z: (z[0]-z[1])*(z[0]-z[1]) , zip(preds,ytest)) )
 rmse = math.sqrt(sse / float(len(preds)))
 print "RMSE: " + str(round(rmse,2))
+# RMSE: 0.22
 ```

@@ -66,7 +66,7 @@ class ORF:
         print    "y\pred\t " + "\t".join(map(str,range(self.param['numClasses'])))
         i = 0
         for row in conf:
-            print str(i) + "\t" + "\t".join(map(str,row)) + "\n"
+            print str(i) + "\t" + "\t".join(map(str,row))
             i += 1
 
 # Other functions:
