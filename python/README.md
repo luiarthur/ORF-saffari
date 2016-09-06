@@ -40,17 +40,17 @@ X = np.random.randn(n,2)
 y = map(f,X)
 
 # setting parameters for ORF. For more details: >>> help(OnlineRF).
-param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 4}
+param = {'minSamples': 100, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 4}
 orf = ORF(param,numTrees=50)
 for i in range(n):
     orf.update(X[i,:],y[i])
 
 orf.forest[0].draw()
-#                            ____________X1 < 0.59_______________________________________
-#  __________________________X1 < 1.67_                         ________________________X1 < 1.07_
-#__X1 < -1.16___                      0             ____________X2 < 0.41___                     0
-#0           __X1 < -2.84_                        __X1 < 3.39_           __X2 < 0.89_
-#            0           1                        1          0           1          0
+#                            _________________________________________________X2 < 1.26_
+#               _____________X2 < -0.6________________                                 0
+#  _____________X2 < -0.92_             _____________X1 < 0.72___
+#__X1 < -0.31_            1           __X1 < -1.52_           __X1 < 1.74_
+#0           0                        0           1           0          0
 
 xtest = np.random.randn(n,2)
 ytest = map(f,xtest)
@@ -60,10 +60,10 @@ predAcc = sum(map(lambda z: int(z[0] == z[1]), zip(preds,ytest))) / float(len(pr
 conf = orf.confusion(xtest,ytest)
 orf.printConfusion(conf)
 #y\pred   0      1
-#0       603     10
-#1       26      361
+#0       578     52
+#1       1      369
 print "Accuracy: " + str(round(predAcc * 100,2)) + "%"
-# Accuracy: 97.0%
+# Accuracy: 94.7%
 ```
 
 ### Regression Example:
