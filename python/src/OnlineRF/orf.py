@@ -1,5 +1,6 @@
-from ort import ORT, dataRange, argmax
+from ort import ORT
 from math import sqrt
+from utils import argmax
 
 class ORF:
     def __init__(self,param,numTrees=100,ncores=0): # implement parallel at method update(self,x,y) FIXME
@@ -51,6 +52,22 @@ class ORF:
 
     def sdMaxDepth(self):
         return sd([ort.tree.maxDepth() for ort in self.forest])
+    
+    def confusion(self,xs,ys):
+        n = self.param['numClasses']
+        assert n > 1, "Confusion matrices can only be obtained for classification data." 
+        preds = self.predicts(xs)
+        conf = [[0] * n for i in range(n)]
+        for (y,p) in zip(ys,preds):
+            conf[y][p] += 1
+        return conf
+    
+    def printConfusion(self,conf):
+        print    "y\pred\t " + "\t".join(map(str,range(self.param['numClasses'])))
+        i = 0
+        for row in conf:
+            print str(i) + "\t" + "\t".join(map(str,row)) + "\n"
+            i += 1
 
 # Other functions:
 def mean(xs):

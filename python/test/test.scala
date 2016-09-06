@@ -10,7 +10,7 @@ def sd (xs: Vector[Double]) = {
 // Classify
 timer {
   val n = 1000
-  def f(x: Vector[Double]) = if (x(0)*x(0) + x(1)*x(1) < .5*.5) 1.0 else 0.0
+  def f(x: Vector[Double]) = if (x(0)*x(0) + x(1)*x(1) < 1) 1.0 else 0.0
   val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val y = X map f
   val param = Param(minSamples=10, minGain= .01, numClasses=2, xrng=dataRange(X))
@@ -50,7 +50,7 @@ println
 // ORF Classify
 timer {
   val n = 1000
-  def f(x: Vector[Double]) = if (x(0)*x(0) + x(1)*x(1) < .5*.5) 1.0 else 0.0
+  def f(x: Vector[Double]) = if (x(0)*x(0) + x(1)*x(1) < 1) 1.0 else 0.0
   val X = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
   val y = X map f
   val xtest = Vector.fill(n)(Vector.fill(2)(scala.util.Random.nextGaussian))
@@ -61,6 +61,10 @@ timer {
   val orf = ClsForest(param,numTrees=500,par=true)
 
   for (i <- 0 until n) orf.update(X(i),y(i))
+
+  val conf = orf.confusion(xtest,ytest)
+  println(ytest.sum)
+  orf.printConfusion(conf)
 
   val pred = orf.predicts(xtest)
   val acc = {(pred zip ytest) map {z => if (z._1 == z._2) 1.0 else 0.0}}.sum / n

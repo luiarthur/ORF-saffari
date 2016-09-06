@@ -4,13 +4,17 @@ import unittest, sys
 import numpy as np
 sys.path.append("../src")
 import math
-
-def mean(x):
-    return sum(x) / (len(x)*1.0)
-
-from ort import ORT, dataRange
-from orf import ORF, sd
 from bcolors import bcolors as bc
+
+from OnlineRF import ORF, ORT, dataRange
+
+def mean(xs):
+    return sum(xs) / (len(xs) * 1.0)
+
+def sd(xs): 
+    n = len(xs) *1.0
+    mu = sum(xs) / n
+    return math.sqrt( sum(map(lambda x: (x-mu)*(x-mu),xs)) / (n-1) )
 
 print bc.HEADER + "Starting Test..." + bc.ENDC
 
@@ -19,7 +23,7 @@ def warn(msg="wtf?"):
 
 class Tests(unittest.TestCase):
 
-    from tree import Tree
+    from OnlineRF import Tree
     global t1,t2,t3,t4
 
     t1 = Tree(1)
@@ -45,7 +49,7 @@ class Tests(unittest.TestCase):
 
     def test5(self,msg=warn("test ORT Classify")):
         def f(x):
-            return 1 if x[0]*x[0] + x[1]*x[1] < .5*.5 else 0
+            return int(x[0]*x[0] + x[1]*x[1] < 1)
         n = 1000
         X = np.random.randn(n,2)
         y = map(f,X)
@@ -81,18 +85,22 @@ class Tests(unittest.TestCase):
 
     def test7(self,msg=warn("test ORF Classify")):
         def f(x):
-            return 1 if x[0]*x[0] + x[1]*x[1] < .5*.5 else 0
+            return int(x[0]*x[0] + x[1]*x[1] < 1)
         n = 1000
         X = np.random.randn(n,2)
         y = map(f,X)
         param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X)}
-        orf = ORF(param,numTrees=500)
+        orf = ORF(param,numTrees=50)
         for i in range(n):
             orf.update(X[i,:],y[i])
 
         xtest = np.random.randn(n,2)
         ytest = map(f,xtest)
         preds = orf.predicts(xtest)
+        conf = orf.confusion(xtest,ytest)
+        print
+        print sum(ytest)
+        orf.printConfusion(conf)
 
         acc = map(lambda z: z[0]==z[1] , zip(preds,ytest))
         print "ORF Classify:"
@@ -111,7 +119,7 @@ class Tests(unittest.TestCase):
         param = {'minSamples': 10, 'minGain': 0, 'xrng': dataRange(X), 'maxDepth': 10}
         xtest = np.random.randn(n,2)
         ytest = map(f,xtest)
-        orf = ORF(param,numTrees=500)
+        orf = ORF(param,numTrees=50)
 
         for i in range(n):
             orf.update(X[i,:],y[i])

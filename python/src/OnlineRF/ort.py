@@ -1,26 +1,12 @@
 from tree import Tree
-from math import e,sqrt,log,exp
+from math import e, sqrt, exp
+from utils import argmax, log2
 import random
-
-def argmax(x):
-    return x.index(max(x))
-
-def log2(x):
-    return log(x) / log(2)
-
-def dataRange(X, pad=0):
-    import numpy as np
-    k = len(X[0])
-    rng = np.zeros([k,2])
-    for j in range(k):
-        rng[j,0] = X[:,j].min() - pad
-        rng[j,1] = X[:,j].max() + pad
-    return rng
 
 class ORT:
     """
     Examples:
-        xrng = np.array([[x0_min,x0_max], [x1_min,x1_max], [x2_min,x2_max]])
+        xrng = [[x0_min,x0_max], [x1_min,x1_max], [x2_min,x2_max]]
         param = {'minSamples': 5, 'minGain': .1, 'numClasses': 10, 'xrng': xrng}
     """
     def __init__(self,param):
@@ -170,7 +156,7 @@ class Elem: #HERE
 
     def generateTest(self):
         dim = random.randrange(self.xdim)
-        loc = random.uniform(self.xrng[dim,0],self.xrng[dim,1]) # xrng is a numpy matrix
+        loc = random.uniform(self.xrng[dim][0],self.xrng[dim][1])
         return Test(dim, loc, self.numClasses)
 
     def toString(self):
