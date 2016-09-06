@@ -38,10 +38,19 @@ def f(x):
 n = 1000
 X = np.random.randn(n,2)
 y = map(f,X)
-param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X)}
+
+# setting parameters for ORF. For more details: >>> help(OnlineRF).
+param = {'minSamples': 10, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 4}
 orf = ORF(param,numTrees=50)
 for i in range(n):
     orf.update(X[i,:],y[i])
+
+orf.forest[0].draw()
+#                            ____________X1 < 0.59_______________________________________
+#  __________________________X1 < 1.67_                         ________________________X1 < 1.07_
+#__X1 < -1.16___                      0             ____________X2 < 0.41___                     0
+#0           __X1 < -2.84_                        __X1 < 3.39_           __X2 < 0.89_
+#            0           1                        1          0           1          0
 
 xtest = np.random.randn(n,2)
 ytest = map(f,xtest)
