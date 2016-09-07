@@ -39,7 +39,7 @@ n = 1000
 X = np.random.randn(n,2)
 y = map(f,X)
 
-# setting parameters for ORF. For more details: >>> help(OnlineRF).
+# setting parameters for ORF. For more details: >>> help(ORF).
 param = {'minSamples': 100, 'minGain': .01, 'numClasses': 2, 'xrng': dataRange(X), 'maxDepth': 4}
 orf = ORF(param,numTrees=50)
 for i in range(n):
