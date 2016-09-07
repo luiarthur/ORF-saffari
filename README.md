@@ -19,8 +19,8 @@ directory. The test currently takes about a minute.
 
 
 ### Example usage:
-Coming... For now, just look at `sbt/src/test/scala/ConfirmResults.scala`.
+See `README.md` in the `sbt/` directory.
 
 
 ## Python
-More details soon...
+See `README.md` in the `python/` directory.
