@@ -34,9 +34,25 @@ class Tree:
         self.right = right
 
     def updateChildren(self,l,r):
+        """
+        updates the left and right children trees.  e.g.
+
+        >>> t = Tree(1)
+        >>> t.draw()
+
+        Leaf(1)
+
+        >>> t.updateChildren(Tree(2),Tree(3))
+        
+        __1__
+        2   3
+        """
         self.left, self.right = l,r
 
     def isLeaf(self):
+        """
+        returns a boolean. True if the Tree has no children, False otherwise
+        """
         return self.left == None and self.right == None
 
     def size(self):
@@ -46,9 +62,15 @@ class Tree:
         return 1 if self.isLeaf() else self.left.size() + self.right.size() + 1
     
     def numLeaves(self):
+        """
+        returns number of leaves in tree
+        """
         return  1 if self.isLeaf() else self.left.numLeaves() + self.right.numLeaves()
 
     def maxDepth(self):
+        """
+        returns maximum depth of tree
+        """
         return self.__md(1)
 
     def __md(self,s):

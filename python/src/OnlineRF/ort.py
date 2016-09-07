@@ -5,9 +5,30 @@ import random
 
 class ORT:
     """
+    constructor for Online Random Forest (ORT)
+    The theory for ORT was developed by Amir Saffari. see http://lrs.icg.tugraz.at/pubs/saffari_olcv_09.pdf
+
+    Only one parameter in constructor: param
+    param is a dictionary having at least the following entries:
+
+    - minSamples       : minimum number of samples a node has to see before splitting
+    - minGain          : minimum reduction in node impurity (classification or sd of node) required for splitting
+    - xrng             : range of the input space (see utils.dataRange)
+
+    Also for classification, you must set numClasses:
+    - numClasses       : number of classes in response (it is assumed that the responses are integers 0,...,n-1)
+
+    The following are optional parameters with defaults:
+    - numClasses       : see above (default: 0, for regression)
+    - numTests         : Number of potential split location and dimension pairs to test (defaul: 10)
+    - maxDepth         : Maximum depth a tree is allowed to have. A tree stops growing branches that have depth = maxDepth (default: 30. NOTE THAT YOUR TREE WILL NOT GROW BEYOND 30 DEEP, SET maxDepth TO BE A VALUE GREATER THAN 30 IF YOU WANT LARGER TREES!!!)
+    - gamma            : Trees that are of age 1/gamma may be discarded. see paper (default: 0, for no discarding of old trees). Currently not implemented.
+
+
     Examples:
         xrng = [[x0_min,x0_max], [x1_min,x1_max], [x2_min,x2_max]]
         param = {'minSamples': 5, 'minGain': .1, 'numClasses': 10, 'xrng': xrng}
+        ort = ORT(param)
     """
     def __init__(self,param):
         self.param = param
@@ -22,9 +43,24 @@ class ORT:
         self.tree = Tree( Elem(param=param) )
 
     def draw(self):
+        """
+        draw a pretty online random tree. Usage:
+
+        ort.draw()
+        """
         print self.tree.treeString(fun=True)
 
     def update(self,x,y):
+        """
+        updates the ORT
+
+        - x : list of k covariates (k x 1)
+        - y : response (scalar)
+
+        usage: 
+
+        ort.update(x,y)
+        """
         k = self.__poisson(1)
         if k == 0:
             self.__updateOOBE(x,y)
@@ -45,6 +81,16 @@ class ORT:
                         j.elem.reset()
 
     def predict(self,x):
+        """
+        returns a scalar prediction based on input (x)
+
+        - x : list of k covariates (k x 1)
+        
+        usage: 
+        
+        ort.predict(x)
+        
+        """
         return self.__findLeaf(x,self.tree)[0].elem.pred() # [0] returns the node, [1] returns the depth
 
     def __gains(self,elem):
