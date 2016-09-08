@@ -1,5 +1,5 @@
 # ORF-saffari
-My implementation of Online Random Forest by Saffari
+Implementation of Online Random Forest by Saffari in Scala and Python.
 
 ## Scala
 
