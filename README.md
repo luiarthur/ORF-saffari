@@ -1,5 +1,5 @@
 # ORF-saffari
-Implementations of Online Random Forest[1] in Scala and Python.
+Implementations of Online Random Forest [1] in Scala and Python.
 
 Online random forests are ensembles of online decision trees. Online decision trees are updated when new observations
 are presented. The observations need not be stored after they are used to update the trees / forest.
@@ -27,5 +27,8 @@ See `README.md` in the `sbt/` directory.
 
 ## Python
 See `README.md` in the `python/` directory.
+
+
+***
 
 [1] Amir Saffari, Christian Leistner, Jakob Santner, Martin Godec, and Horst Bischof, "On-line Random Forests," 3rd IEEE ICCV Workshop on On-line Computer Vision, 2009.
