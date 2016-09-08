@@ -1,5 +1,5 @@
 # ORF-saffari
-Implementation of Online Random Forest by Saffari in Scala and Python.
+Implementations in Scala and Python of Online Random Forest (by [Saffari][1]).
 
 ## Scala
 
@@ -24,3 +24,5 @@ See `README.md` in the `sbt/` directory.
 
 ## Python
 See `README.md` in the `python/` directory.
+
+[1]: Amir Saffari, Christian Leistner, Jakob Santner, Martin Godec, and Horst Bischof, "On-line Random Forests," 3rd IEEE ICCV Workshop on On-line Computer Vision, 2009.
