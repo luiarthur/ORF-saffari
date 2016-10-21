@@ -39,7 +39,7 @@ package object models {
    *  @param minGain  the minimum gain (based on metric) that a split needs to achieve before split can occur
    *  @param gamma  the temporal weighting learning rate (>0). if age of tree > 1/gamma, the tree is thrown away. (default=0)
    *  @param numTests  the number of tests (split dimension, location) each node does. (default=10)
-   *  @param xrng
+   *  @param xrng the range of the data X
    *  @param maxDepth the maximum depth allowed for a tree. Defaults to 30.
    */
   case class Param(minSamples: Int, minGain: Double, xrng: Vector[(Double,Double)], numClasses: Int = 0, numTests: Int = 10, gamma: Double = 0, maxDepth: Int = 30)

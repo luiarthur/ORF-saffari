@@ -59,7 +59,7 @@ object Template {
     protected val dimX = param.xrng.size
     def updateSplit(dim: Int, loc: Double) = { _splitDim=dim; _splitLoc=loc }
     def split = (_splitDim, _splitLoc)
-    def reset: Unit 
+    def reset: Unit
     def stats: SuffStats
     def stats_=(newStats: Any): Unit
     def numSamplesSeen = _numSamplesSeen
